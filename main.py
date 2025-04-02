@@ -14,9 +14,10 @@ state = [screen.get_width() /2, screen.get_height()/2, 0]
 v_left = 0
 v_right = 0
 
+robot_radius = 40
+
 while running:
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
+    #check for close game
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -24,12 +25,12 @@ while running:
     # fill the screen with a color to wipe away anything from last frame
     screen.fill((51,51,51))
 
-    pygame.draw.circle(screen, "red", [state[0], state[1]], 40)
+    pygame.draw.circle(screen, "red", [state[0], state[1]], robot_radius)
  
 
-    pygame.draw.line(screen, (255, 255, 255), [state[0], state[1]], [np.cos(state[2])* 40 + state[0], np.sin(state[2])* 40 + state[1]], 5)
+    pygame.draw.line(screen, (255, 255, 255), [state[0], state[1]], [np.cos(state[2])* robot_radius + state[0], np.sin(state[2])* 40 + state[1]], 5)
     
-    
+    # Key events
     keys = pygame.key.get_pressed()
     if keys[pygame.K_w]:
         v_right += 0.2
@@ -45,15 +46,13 @@ while running:
     if keys[pygame.K_f]:
         v_right= v_left
 
+    #Update State
     state_change = differential_drive_kinematics(state, dt, v_left , v_right)
     state = [state[0] + state_change[0], state[1]+ state_change[1], (state[2] + state_change[2]) % 360]
 
-    # flip() the display to put your work on screen
+    # Shows on display
     pygame.display.flip()
 
-    # limits FPS to 60
-    # dt is delta time in seconds since last frame, used for framerate-
-    # independent physics.
     dt = clock.tick(60) / 1000
 
 pygame.quit()
