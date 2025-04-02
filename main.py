@@ -1,9 +1,8 @@
-# Example file showing a circle moving on screen
 import pygame
 import math
 import numpy as np
 
-from ky import differential_drive_kinematics
+from kinematics import differential_drive_kinematics
 # pygame setup
 pygame.init()
 screen = pygame.display.set_mode((1280, 720))
@@ -46,8 +45,8 @@ while running:
     if keys[pygame.K_f]:
         v_right= v_left
 
-    s = differential_drive_kinematics(state, dt, v_left , v_right)
-    state = [state[0] + s[0], state[1]+ s[1], (state[2] + s[2]) % 360]
+    state_change = differential_drive_kinematics(state, dt, v_left , v_right)
+    state = [state[0] + state_change[0], state[1]+ state_change[1], (state[2] + state_change[2]) % 360]
 
     # flip() the display to put your work on screen
     pygame.display.flip()
