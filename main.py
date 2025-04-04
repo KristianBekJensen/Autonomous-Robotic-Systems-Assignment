@@ -75,7 +75,7 @@ while running:
     state = (x, y, theta)
     sensor_lines = sn.draw_sensors(screen, state, 100)
     # detect walls
-    sn.detect_walls(sensor_lines, wall, state, r)
+    senors_values =  sn.detect_walls(sensor_lines, wall, state, r)
 
     # Key events for controlling the robot
     keys = pygame.key.get_pressed()
@@ -100,7 +100,7 @@ while running:
     draw_robot_text(x, y, r/3, theta, 90, str(v_right.__round__(1))) # right wheel speed
     
     for i in range(12):
-        draw_robot_text(x, y, r+10, theta, 30*i, str(30*i))
+        draw_robot_text(x, y, r+10, theta, 30*i, str(round(senors_values[i], 1)))
 
     # Shows on display
     pygame.display.flip()
