@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.integrate import odeint
 
 # Robot parameters
 #wheel_radius = 0.05
@@ -13,8 +12,3 @@ def differential_drive_kinematics(state, t, v_left, v_right):
     dydt = v*np.sin(direction)
 
     return [dxdt, dydt, rotation]
-
-
-def update_robot_state(initial_state, t, v_left, v_right):
-    return odeint(differential_drive_kinematics, initial_state, t, args=(v_left, v_right))
-
