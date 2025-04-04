@@ -2,6 +2,7 @@ import pygame
 import math
 import numpy as np
 from kinematics import differential_drive_kinematics
+import sensors as sn
 
 # pygame setup
 pygame.init()
@@ -70,6 +71,12 @@ while running:
     robot = pygame.draw.circle(screen, "red", (x, y), r)
     pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 5)
 
+    ## draw sensors
+    state = (x, y, theta)
+    sensor_lines = sn.draw_sensors(screen, state, 100)
+    # detect walls
+    sn.detect_walls(sensor_lines, wall, state, r)
+
     # Key events for controlling the robot
     keys = pygame.key.get_pressed()
     # accelerate and decelerate
@@ -97,7 +104,7 @@ while running:
 
     # Shows on display
     pygame.display.flip()
-    dt = clock.tick(60) / 1000
+    dt = clock.tick(60)
 
 pygame.quit()
 
