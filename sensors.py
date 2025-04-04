@@ -18,7 +18,7 @@ def draw_sensors(screen, robot_state, sensor_length, draw=False):
 
 def detect_walls(sensor_lines, wall, robot_state, robot_radius):
     x_robot, y_robot, theta_robot = robot_state
-    collided_lines = np.full(len(sensor_lines), 200)
+    collided_lines = np.full(len(sensor_lines), 100-robot_radius)
     for i, line in sensor_lines:
         start, end = line
         clipped_line = wall.clipline(start, end)
