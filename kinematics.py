@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.integrate import odeint
 
 # Robot parameters
 #wheel_radius = 0.05
