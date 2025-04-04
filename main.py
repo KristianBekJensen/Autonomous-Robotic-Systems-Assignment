@@ -16,7 +16,7 @@ v_right = 0
 r = 40 # robot radius
 
 def draw_robot_text(x, y, r, theta, angle, text):
-    my_font = pygame.font.SysFont('Comic Sans MS', 10)
+    my_font = pygame.font.SysFont('Comic Sans MS', 14)
     
     angle = (math.degrees(theta) + angle) % 360
     angle = math.radians(angle)
