@@ -14,6 +14,21 @@ v_left = 0
 v_right = 0
 r = 40 # robot radius
 
+def draw_robot_text(x, y, r, theta, angle, text):
+    my_font = pygame.font.SysFont('Comic Sans MS', 10)
+    
+    angle = (math.degrees(theta) + angle) % 360
+    angle = math.radians(angle)
+    
+    x2 = x + np.cos(angle) * r
+    y2 = y + np.sin(angle) * r
+    #adjust from center of textbox coords to topleft of textbox
+    x2-=7
+    y2-=7
+
+    text_surface = my_font.render(text, False, (0, 0, 0))
+    screen.blit(text_surface, (x2,y2))
+
 running = True
 while running:
 
@@ -74,8 +89,15 @@ while running:
     else:
         v_right = v_left
     
+    draw_robot_text(x, y, r/3, theta, 270, str(v_left.__round__(1))) # left wheel speed
+    draw_robot_text(x, y, r/3, theta, 90, str(v_right.__round__(1))) # right wheel speed
+    
+    for i in range(12):
+        draw_robot_text(x, y, r+10, theta, 30*i, str(30*i))
+
     # Shows on display
     pygame.display.flip()
     dt = clock.tick(60) / 1000
 
 pygame.quit()
+
