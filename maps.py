@@ -28,7 +28,7 @@ def draw_map(screen, edges, walls, wall_thickness):
     
     # Define the wall properties.
     wall_color = (0, 0, 0)  # red
-    wall_rects = []
+    wall_rects = [top_rect, bottom_rect, left_rect, right_rect]
     
     # Process each wall from the dictionary.
     for wall_id, wall in walls.items():
