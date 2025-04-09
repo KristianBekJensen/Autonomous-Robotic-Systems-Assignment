@@ -14,12 +14,6 @@ debug = True
 display_width = 1000
 display_height = 1000
 
-# # set up the grid
-# num_rows = 20
-# num_cols = 20
-# row_size = display_height / num_rows
-# col_size = display_width / num_cols
-
 screen = pygame.display.set_mode((display_width, display_height))
 clock = pygame.time.Clock()
 dt = 0
