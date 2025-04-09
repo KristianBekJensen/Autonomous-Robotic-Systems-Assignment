@@ -2,7 +2,7 @@ import numpy as np
 
 # Robot parameters
 #wheel_radius = 0.05
-axel_lenght = 3
+axel_lenght = 20
 
 def differential_drive_kinematics(state, t, v_left, v_right):
     x, y, direction = state

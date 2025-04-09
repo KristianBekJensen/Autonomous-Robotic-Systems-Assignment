@@ -28,8 +28,8 @@ dt = 0
 x = col_size / 2 + col_size
 y = row_size / 2 + row_size
 theta = 0
-x = 200
-y = 200
+#x = 200
+#y = 200
 v_left = 0
 v_right = 0
 r = 40 # robot radius
@@ -109,6 +109,8 @@ def check_y_wall(wall, new_y):
         new_y = wall.y + wall.height + r
         #print("below")
     return new_y
+
+
 
 running = True
 while running:
@@ -227,16 +229,18 @@ while running:
             senors_values[i] = max_sensor_range
     
                 
-
+    # react on key inputs from the user and adjust wheel speeds
     # Key events for controlling the robot
     keys = pygame.key.get_pressed()
 
     # accelerate and decelerate
     if keys[pygame.K_w]:
-        v_right = max(v_right, v_left)
-        v_left = max(v_right, v_left)
-        v_right += 0.2
-        v_left += 0.2
+        if v_left != v_right:
+            v_right = max(v_right, v_left)
+            v_left = max(v_right, v_left)
+        else:
+            v_right += 0.2
+            v_left += 0.2
     elif keys[pygame.K_s]:
         v_left = max(0, v_left - 0.2)
         v_right = max(0, v_right - 0.2)
@@ -246,16 +250,19 @@ while running:
         v_left *= 0.99
     elif keys[pygame.K_q]:
         if v_left == 0 and v_right == 0:
-            v_left = 0.05
+            v_left = 0.3
             v_right = -v_left
     elif keys[pygame.K_e]:
         if v_left == 0 and v_right == 0:
-            v_right = 0.05
+            v_right = 0.3
             v_left = -v_right
-    # back to straight
     else:
-        v_right = v_left
-        
+        if v_right < 0 or v_left < 0:
+            v_right = v_left = 0
+        elif v_right >= v_left:
+            v_left = v_right
+        else:
+            v_right = v_left
     
     draw_robot_text(x, y, r/3, theta, 270, str(v_left.__round__(1))) # left wheel speed
     draw_robot_text(x, y, r/3, theta, 90, str(v_right.__round__(1))) # right wheel speed
