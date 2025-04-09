@@ -6,6 +6,7 @@ import numpy as np
 from sympy import true
 from kinematics import differential_drive_kinematics
 import sensors as sn
+import maps
 
 # pygame setup
 pygame.init()
@@ -14,70 +15,70 @@ pygame.init()
 display_width = 1000
 display_height = 1000
 
-# set up the grid
-num_rows = 20
-num_cols = 20
-row_size = display_height / num_rows
-col_size = display_width / num_cols
+# # set up the grid
+# num_rows = 20
+# num_cols = 20
+# row_size = display_height / num_rows
+# col_size = display_width / num_cols
 
 screen = pygame.display.set_mode((display_width, display_height))
 clock = pygame.time.Clock()
 dt = 0
 
 # set up the robot's initial position and orientation
-x = col_size / 2 + col_size
-y = row_size / 2 + row_size
+# x = col_size / 2 + col_size
+# y = row_size / 2 + row_size
 theta = 0
-#x = 200
-#y = 200
+x = 100
+y = 100
 v_left = 0
 v_right = 0
 r = 40 # robot radius
 
-maze_string = """
-11111111111111111111
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-10000000000000000001
-11111111111111111111
-"""
+# maze_string = """
+# 11111111111111111111
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 10000000000000000001
+# 11111111111111111111
+# """
 
-maze_list = [list(row) for row in maze_string.strip().split("\n")]
-walls = []
+# maze_list = [list(row) for row in maze_string.strip().split("\n")]
+# walls = []
 
 max_sensor_range = 100 - r
 senors_values = np.full(12, max_sensor_range)
 
-# make the walls 
-def append_walls():
-    for row in range(num_rows):
-        for col in range(num_cols):
-            if maze_list[row][col] == "1":
-                x_pos = col * col_size
-                y_pos = row * row_size
-                wall_maze = pygame.Rect(x_pos, y_pos, col_size, row_size)
-                walls.append(wall_maze)
+# # make the walls 
+# def append_walls():
+#     for row in range(num_rows):
+#         for col in range(num_cols):
+#             if maze_list[row][col] == "1":
+#                 x_pos = col * col_size
+#                 y_pos = row * row_size
+#                 wall_maze = pygame.Rect(x_pos, y_pos, col_size, row_size)
+#                 walls.append(wall_maze)
 
-append_walls()
+# append_walls()
 
 
 def draw_robot_text(x, y, r, theta, angle, text):
-    my_font = pygame.font.SysFont('Comic Sans MS', 14)
+    my_font = pygame.font.SysFont('Comic Sans MS', 20)
     
     angle = (math.degrees(theta) + angle) % 360
     angle = math.radians(angle)
@@ -120,12 +121,24 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     # fill the screen with a color to wipe away anything from last frame
-    screen.fill((80,80,80))
+    screen.fill((255,255,255))
 
     # draw walls  
-    for wall in walls:
-        #color = list(np.random.choice(range(256), size=3))
-        pygame.draw.rect(screen, (255,255,255), wall)
+    # for wall in walls:
+    #     #color = list(np.random.choice(range(256), size=3))
+    #     pygame.draw.rect(screen, (255,255,255), wall)
+
+    # Define the edges for the map (creates a 980x980 area with a 10 pixel margin).
+    edges = [(0, 0), (1000, 0), (1000, 1000), (0, 1000)]
+
+    # Define some walls as an example.
+    wall_coords = {
+        "1": ((0, 200), (700, 200)),
+        "2": ((333, 400), (1000, 400)),
+        "3": ((333, 400), (333, 800)),
+        "4": ((667, 600), (667, 1000)),
+    }
+    walls = maps.draw_map(screen, edges, wall_coords)
 
     # calculate new (potential) state
     state = [x, y, theta]
@@ -210,7 +223,7 @@ while running:
     
     # draw the robot with a direction line
     robot = pygame.draw.circle(screen, "red", (x, y), r)
-    pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 5)
+    pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
 
     ## draw sensors
     state = (x, y, theta)
