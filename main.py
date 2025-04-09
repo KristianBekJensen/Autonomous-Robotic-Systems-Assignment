@@ -10,8 +10,10 @@ import sensors as sn
 # pygame setup
 pygame.init()
 
+#set up display 
 display_width = 1000
 display_height = 1000
+
 # set up the grid
 num_rows = 20
 num_cols = 20
@@ -58,22 +60,21 @@ maze_string = """
 maze_list = [list(row) for row in maze_string.strip().split("\n")]
 walls = []
 
-value = 100 - r
-senors_values = np.full(12, value)
+max_sensor_range = 100 - r
+senors_values = np.full(12, max_sensor_range)
 
 # make the walls 
-for row in range(num_rows):
-    for col in range(num_cols):
-        if maze_list[row][col] == "1":
-            x_pos = col * col_size
-            y_pos = row * row_size
-            wall_maze = pygame.Rect(x_pos, y_pos, col_size, row_size)
-            walls.append(wall_maze)
-        elif maze_list[row][col] == "2":
-            x_pos = col * col_size
-            y_pos = row * row_size
-            wall_maze = pygame.Rect(x_pos, y_pos, col_size, row_size)
-            pygame.draw.rect(screen, (0,255,0), wall_maze)
+def append_walls():
+    for row in range(num_rows):
+        for col in range(num_cols):
+            if maze_list[row][col] == "1":
+                x_pos = col * col_size
+                y_pos = row * row_size
+                wall_maze = pygame.Rect(x_pos, y_pos, col_size, row_size)
+                walls.append(wall_maze)
+
+append_walls()
+
 
 def draw_robot_text(x, y, r, theta, angle, text):
     my_font = pygame.font.SysFont('Comic Sans MS', 14)
@@ -90,9 +91,24 @@ def draw_robot_text(x, y, r, theta, angle, text):
     text_surface = my_font.render(text, False, (0, 0, 0))
     screen.blit(text_surface, (x2,y2))
 
+# check for colliding
+def check_x_wall(wall, new_x):
+    if new_x < wall.x:
+        new_x = wall.x - r
+        #print("left")
+    elif new_x > wall.x + wall.width:
+        new_x = wall.x + wall.width + r
+        #print("right")
+    return new_x
 
-
-    
+def check_y_wall(wall, new_y):
+    if new_y < wall.y:
+        new_y = wall.y - r
+        #print("above")
+    elif new_y > wall.y + wall.height:
+        new_y = wall.y + wall.height + r
+        #print("below")
+    return new_y
 
 running = True
 while running:
@@ -106,8 +122,8 @@ while running:
 
     # draw walls  
     for wall in walls:
-        color = list(np.random.choice(range(256), size=3))
-        pygame.draw.rect(screen, color, wall)
+        #color = list(np.random.choice(range(256), size=3))
+        pygame.draw.rect(screen, (255,255,255), wall)
 
     # calculate new (potential) state
     state = [x, y, theta]
@@ -116,27 +132,9 @@ while running:
     new_y = y + state_change[1]
     new_theta = (theta + state_change[2]) % (2 * math.pi)
 
-    new_robot_rect = pygame.Rect(new_x - r, new_y - r, 2 * r, 2 * r) # rectangle representation of the robot
+    # rectangle representation of the robot
+    new_robot_rect = pygame.Rect(new_x - r, new_y - r, 2 * r, 2 * r) 
 
-    # check for colliding
-    def check_x_wall(wall, new_x):
-        if new_x < wall.x:
-            new_x = wall.x - r
-            print("left")
-        elif new_x > wall.x + wall.width:
-            new_x = wall.x + wall.width + r
-            print("right")
-        return new_x
-    
-    def check_y_wall(wall, new_y):
-        if new_y < wall.y:
-            new_y = wall.y - r
-            print("above")
-        elif new_y > wall.y + wall.height:
-            new_y = wall.y + wall.height + r
-            print("below")
-        return new_y
-        
     colliding_walls = []
 
     for wall in walls:
@@ -221,12 +219,12 @@ while running:
     for wall in walls:
         new_senors_values =  sn.detect_walls(sensor_lines, wall, state, r)
         for i in range(len(senors_values)):
-            if new_senors_values[i] < value:
+            if new_senors_values[i] < max_sensor_range:
                 senors_values[i] = new_senors_values[i]
                 activatedSensors.append(i)
     for i in range(12):
         if i not in activatedSensors:
-            senors_values[i] = value
+            senors_values[i] = max_sensor_range
     
                 
 
@@ -242,11 +240,10 @@ while running:
     elif keys[pygame.K_s]:
         v_left = max(0, v_left - 0.2)
         v_right = max(0, v_right - 0.2)
-    
     elif keys[pygame.K_d]:
-        v_left *= 0.99
-    elif keys[pygame.K_a]:
         v_right *= 0.99
+    elif keys[pygame.K_a]:
+        v_left *= 0.99
     elif keys[pygame.K_q]:
         if v_left == 0 and v_right == 0:
             v_left = 0.05
@@ -258,6 +255,7 @@ while running:
     # back to straight
     else:
         v_right = v_left
+        
     
     draw_robot_text(x, y, r/3, theta, 270, str(v_left.__round__(1))) # left wheel speed
     draw_robot_text(x, y, r/3, theta, 90, str(v_right.__round__(1))) # right wheel speed
