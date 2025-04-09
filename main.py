@@ -230,7 +230,7 @@ while running:
 
     ## draw sensors
     state = (x, y, theta)
-    sensor_lines = sn.draw_sensors(screen, state, 100)
+    sensor_lines = sn.draw_sensors(screen, state, 100, debug)
 
     # detect walls
     activatedSensors = []
