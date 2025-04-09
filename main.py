@@ -11,6 +11,8 @@ import maps
 # pygame setup
 pygame.init()
 
+debug = True
+
 #set up display 
 display_width = 1000
 display_height = 1000
@@ -76,15 +78,19 @@ senors_values = np.full(12, max_sensor_range)
 
 # append_walls()
 
-
-def draw_robot_text(x, y, r, theta, angle, text):
-    my_font = pygame.font.SysFont('Comic Sans MS', 20)
-    
+def point_on_circle(x, y, r, theta, angle):
     angle = (math.degrees(theta) + angle) % 360
     angle = math.radians(angle)
     
     x2 = x + np.cos(angle) * r
     y2 = y + np.sin(angle) * r
+
+    return x2, y2
+
+def draw_robot_text(x, y, r, theta, angle, text):
+    my_font = pygame.font.SysFont('Comic Sans MS', 14)
+    
+    x2, y2 = point_on_circle(x, y, r, theta, angle)
     #adjust from center of textbox coords to topleft of textbox
     x2-=7
     y2-=7
@@ -93,20 +99,20 @@ def draw_robot_text(x, y, r, theta, angle, text):
     screen.blit(text_surface, (x2,y2))
 
 # check for colliding
-def check_x_wall(wall, new_x):
-    if new_x < wall.x:
+def check_x_wall(wall, new_x, x):
+    if x <= wall.x:
         new_x = wall.x - r
         #print("left")
-    elif new_x > wall.x + wall.width:
+    elif x >= wall.x + wall.width:
         new_x = wall.x + wall.width + r
         #print("right")
     return new_x
 
-def check_y_wall(wall, new_y):
-    if new_y < wall.y:
+def check_y_wall(wall, new_y, y):
+    if y <= wall.y:
         new_y = wall.y - r
         #print("above")
-    elif new_y > wall.y + wall.height:
+    elif y >= wall.y + wall.height:
         new_y = wall.y + wall.height + r
         #print("below")
     return new_y
@@ -138,91 +144,88 @@ while running:
         "3": ((333, 400), (333, 800)),
         "4": ((667, 600), (667, 1000)),
     }
-    walls = maps.draw_map(screen, edges, wall_coords)
+    wall_thickness = 3
+    walls = maps.draw_map(screen, edges, wall_coords, wall_thickness)
 
     # calculate new (potential) state
     state = [x, y, theta]
-    state_change = differential_drive_kinematics(state, dt, v_left, v_right)
+    state_change = differential_drive_kinematics(state, v_left, v_right)
     new_x = x + state_change[0]
     new_y = y + state_change[1]
     new_theta = (theta + state_change[2]) % (2 * math.pi)
 
     # rectangle representation of the robot
     new_robot_rect = pygame.Rect(new_x - r, new_y - r, 2 * r, 2 * r) 
-
-    colliding_walls = []
-
-    for wall in walls:
-        if wall.colliderect(new_robot_rect):
-            colliding_walls.append(wall)
+    if debug:
+        pygame.draw.circle(screen, "green", (new_x, new_y), r) #if no collison
+    pygame.draw.circle(screen, "red", (x, y), r) #draw robot
     
-    if len(colliding_walls) == 1:
-            new_x = check_x_wall(colliding_walls[0], new_x)
-            new_y = check_y_wall(colliding_walls[0], new_y)
-    elif len(colliding_walls) == 2:  
-        if abs(colliding_walls[0].x - colliding_walls[1].x) == col_size:
-            new_y = check_y_wall(colliding_walls[0],new_x)
-        elif abs(colliding_walls[0].y - colliding_walls[1].y) == row_size:
-            new_x = check_x_wall(colliding_walls[0], new_y)
-    elif len(colliding_walls) > 2:  
-        x_coords = np.array([wall.x for wall in colliding_walls])
+    colliding_walls = []
+    
+    
+    
 
-        # Group rects by unique x values
-        unique_x = np.unique(x_coords)
-        grouped_by_x = [
-            [colliding_walls[i] for i in np.where(x_coords == x)[0]]
-            for x in unique_x
-        ]
+    start_x, start_y = point_on_circle(x, y, r, theta, 90)
+    end_x, end_y = point_on_circle(new_x, new_y, r, new_theta, 90)
+    """ vector_length = np.sqrt((start_x - end_x) ** 2 + (start_y - end_y) ** 2)
 
-        y_coords = np.array([wall.y for wall in colliding_walls])
+    vector_x = (end_x - start_x) / vector_length
+    vector_x = vector_x*r + end_x
+    vector_y = (end_y- start_y) / vector_length
+    vector_y = vector_y*r + end_y """
 
-        # Group rects by unique y values
-        unique_y = np.unique(y_coords)
-        grouped_by_y = [
-            [colliding_walls[i] for i in np.where(y_coords == y)[0]]
-            for y in unique_y
-        ]
-        
-        if len(grouped_by_x) < len(grouped_by_y):
-            grouped_by = grouped_by_x
+    if debug:
+        pygame.draw.line(screen, "purple", (start_x, start_y), (end_x, end_y))
+    right_clossion = sn.closest_wall(((start_x, start_y),(end_x, end_y)), walls, state)
+    if right_clossion != 0:
+        if debug:
+            pygame.draw.rect(screen, "yellow", right_clossion)
+        colliding_walls.append(right_clossion)
+    
+    start_x, start_y = point_on_circle(x, y, r, theta, 270)
+    end_x, end_y = point_on_circle(new_x, new_y, r, new_theta, 270)
+    """ vector_length = np.sqrt((start_x - end_x) ** 2 + (start_y - end_y) ** 2)
+    
+    vector_x = (end_x - start_x) / vector_length
+    #print(vector_x)
+    vector_x = vector_x*r + end_x
+    vector_y = (end_y- start_y) / vector_length
+    #print(vector_y)
+    vector_y = vector_y*r + end_y
+
+    print(np.sqrt((vector_x) ** 2 + (vector_y) ** 2)) """
+
+    if debug:
+        pygame.draw.line(screen, "purple", (start_x, start_y), (end_x, end_y))
+    left_clossion = sn.closest_wall(((start_x, start_y),(end_x, end_y)), walls, state)
+    if left_clossion != 0:
+        if debug:
+            pygame.draw.rect(screen, "blue", left_clossion)
+        colliding_walls.append(left_clossion)
+    
+    if len(colliding_walls) == 0:
+        for wall in walls:
+            if wall.colliderect(new_robot_rect):
+                colliding_walls.append(wall)
+
+    if len(colliding_walls) != 0:
+        if len(colliding_walls) == 1:
+            new_x = check_x_wall(colliding_walls[0], new_x, x)
+            new_y = check_y_wall(colliding_walls[0], new_y, y)
         else:
-            grouped_by = grouped_by_y
+            for wall in colliding_walls:
+                if wall.width > wall_thickness:
+                        new_y = check_y_wall(wall, new_y, y)
+                else:
+                        new_x = check_x_wall(wall, new_x, x)
 
-        grouped_by.sort(key=len,reverse=True)
-
-        if len(grouped_by) == 1:
-            if abs(colliding_walls[0].x - colliding_walls[1].x) == col_size:
-                new_y = check_y_wall(colliding_walls[0],new_x)
-            elif abs(colliding_walls[0].y - colliding_walls[1].y) == row_size:
-                new_x = check_x_wall(colliding_walls[0], new_y)
-        else:
-            for i in range(len(grouped_by)):
-                if grouped_by[0][0].x == grouped_by[0][1].x:
-                    if y < grouped_by[1][0].y: #above
-                        new_y = grouped_by[1][0].y - r
-                    else: # below
-                        new_y = grouped_by[1][0].y + row_size + r
-                    if x < grouped_by[0][0].x: # left
-                        new_x = grouped_by[0][0].x - r
-                    else: #right
-                        new_x = grouped_by[0][0].x + col_size + r
-                
-                elif grouped_by[0][0].y == grouped_by[0][1].y:
-                    if y < grouped_by[0][0].y: #above
-                        new_y = grouped_by[0][0].y - r
-                    else: # below
-                        new_y = grouped_by[0][0].y + row_size + r
-                    if x < grouped_by[1][0].x: # left
-                        new_x = grouped_by[1][0].x - r
-                    else: #right
-                        new_x = grouped_by[1][0].x + col_size + r
 
 
     # updating state variables
     x, y, theta = new_x, new_y, new_theta
     
     # draw the robot with a direction line
-    robot = pygame.draw.circle(screen, "red", (x, y), r)
+    #robot = pygame.draw.circle(screen, "red", (x, y), r)
     pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
 
     ## draw sensors

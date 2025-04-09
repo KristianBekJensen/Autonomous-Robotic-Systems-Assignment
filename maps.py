@@ -1,6 +1,6 @@
 import pygame
 
-def draw_map(screen, edges, walls):
+def draw_map(screen, edges, walls, wall_thickness):
 
     # Define border properties.
     border_thickness = 2
@@ -28,7 +28,6 @@ def draw_map(screen, edges, walls):
     
     # Define the wall properties.
     wall_color = (0, 0, 0)  # red
-    wall_thickness = 2
     wall_rects = []
     
     # Process each wall from the dictionary.
