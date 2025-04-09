@@ -2,6 +2,7 @@ import pygame
 import math
 import numpy as np
 from kinematics import differential_drive_kinematics
+from navigate import navigate
 import sensors as sn
 import maps
 
@@ -171,35 +172,7 @@ while running:
                 
     # React on key inputs from the user and adjust wheel speeds
     keys = pygame.key.get_pressed()
-    if keys[pygame.K_w]: # Accelrate
-        if v_left != v_right:
-            v_right = max(v_right, v_left)
-            v_left = max(v_right, v_left)
-        else:
-            v_right += 0.2
-            v_left += 0.2
-    elif keys[pygame.K_s]: # Slow down
-        v_left = max(0, v_left - 0.2)
-        v_right = max(0, v_right - 0.2)
-    elif keys[pygame.K_d]: # Turn left
-        v_right *= 0.99
-    elif keys[pygame.K_a]: # Turn right
-        v_left *= 0.99
-    elif keys[pygame.K_q]: # Turn Right on spot 
-        if v_left == 0 and v_right == 0:
-            v_left = 0.3
-            v_right = -v_left
-    elif keys[pygame.K_e]: # Turn Left on spot
-        if v_left == 0 and v_right == 0:
-            v_right = 0.3
-            v_left = -v_right
-    else: # After turn adujust both wheels to same speed
-        if v_right < 0 or v_left < 0:
-            v_right = v_left = 0
-        elif v_right >= v_left:
-            v_left = v_right
-        else:
-            v_right = v_left
+    v_left, v_right = navigate(keys, v_left, v_right)
     
     draw_robot_text(x, y, r/3, theta, 270, str(v_left.__round__(1))) # draw left wheel speed
     draw_robot_text(x, y, r/3, theta, 90, str(v_right.__round__(1))) # draw right wheel speed
