@@ -27,8 +27,51 @@ y = 100
 v_left = 0
 v_right = 0
 
-max_sensor_range = 100 - r
+# Define beacons as (x, y, label)
+features = [
+    (700, 200, "A"),
+    (333, 400, "B"),
+    (667, 600, "C")
+]
+
+def draw_features(screen, beacons):
+    font = pygame.font.SysFont('Arial', 16)
+    for bx, by, label in beacons:
+        pygame.draw.circle(screen, (0, 0, 255), (bx, by), 6)  # Blue beacon dot
+        text_surface = font.render(label, True, (0, 0, 0))
+        screen.blit(text_surface, (bx + 8, by - 8))
+
+max_sensor_range = 400 - r
 senors_values = np.full(12, max_sensor_range)
+
+def detect_features(theta):
+    for feature in features: 
+        feature_x, feature_y, label = feature
+        distance = math.sqrt((x - feature_x) ** 2 + (y - feature_y) ** 2)
+
+        if distance < max_sensor_range:
+            pygame.draw.line(screen, (0, 255, 0), (x, y), (feature_x, feature_y), 2)
+
+            dx = feature_x - x
+            dy = -(feature_y - y)  # Flip y because Pygame's y-axis increases downward
+
+            # Absolute bearing from robot to feature
+            bearing = math.atan2(dy, dx)
+
+            # Relative bearing (subtract robot's heading, normalize to [-π, π])
+            relative_bearing = (bearing - theta + math.pi) % (2 * math.pi) - math.pi
+
+            print(f"Detected {label} at ({feature_x}, {feature_y}) | "
+                  f"Distance: {round(distance, 2)} | "
+                  f"Relative Bearing: {round(math.degrees(relative_bearing), 2)}°")
+            if relative_bearing < 0:
+                print(f"Feature {label} is to the left of the robot.")
+            elif relative_bearing > 0:
+                print(f"Feature {label} is to the right of the robot.")
+            else:
+                print(f"Feature {label} is directly ahead of the robot.")
+
+
 
 def point_on_circles_circumference(x, y, r, theta, angle):
     angle = (math.degrees(theta) + angle) % 360
@@ -91,6 +134,11 @@ while running:
     }
     wall_thickness = 3
     walls = maps.draw_map(screen, edges, wall_coords, wall_thickness)
+    
+    # Draw features on the map
+    draw_features(screen, features)
+    # Detect features 
+    detect_features(theta)
 
     # calculate new (potential) state
     state = [x, y, theta]
@@ -152,6 +200,8 @@ while running:
     # Draw the robot and it's direction line
     pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
     pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
+
+    
 
     ## draw sensors
     state = (x, y, theta)
