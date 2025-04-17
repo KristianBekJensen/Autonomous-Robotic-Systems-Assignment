@@ -33,7 +33,8 @@ v_right = 0
 landmarks = [
     (0, 700, 200),
     (1, 333, 400),
-    (2, 667, 600)
+    (2, 333, 800),
+    (3, 667, 600)
 ]
 
 def draw_landmarks(screen, landmarks):
@@ -62,8 +63,8 @@ initial_pose = np.array([x, y, theta])
 true_pose = initial_pose.copy()
 
 # Initialize Kalman filter
-process_noise = 0.1
-measurement_noise = 0.1
+process_noise = 0.2
+measurement_noise = 0.2
 R = np.diag([process_noise**2, process_noise**2, process_noise**2])  # Process noise
 Q = np.diag([measurement_noise**2, measurement_noise**2, measurement_noise**2])  # Measurement noise
 
@@ -205,6 +206,11 @@ while running:
     robot_pose = np.array([x, y, theta])
     true_poses.append(robot_pose)
 
+    # Draw the true pose trajectory as a solid line
+    if len(true_poses) > 1:
+        pts = [(px, py) for px, py, _ in true_poses]
+        pygame.draw.lines(screen, (0, 0, 0), False, pts, 2)
+
     # Kalman Filter part
     v = (v_left + v_right) / 2
     omega = state_change[2]
@@ -217,7 +223,13 @@ while running:
         z = kf.mu.copy()
     
     kf.predict(u, 1)
-    kf.update(z)
+    estimated_pose, sigma = kf.update(z)
+    estimated_poses.append(estimated_pose)
+        
+    # Draw the estimated pose trajectory as a dotted line
+    if len(estimated_poses) > 1:
+        pts = [(px, py) for px, py, _ in estimated_poses]
+        pygame.draw.lines(screen, (255, 0, 255), False, pts, 2)
 
     
     # Draw the robot and it's direction line
