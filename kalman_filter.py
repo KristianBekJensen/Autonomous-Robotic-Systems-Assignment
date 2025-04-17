@@ -1,54 +1,78 @@
 import numpy as np
+from math import cos, sin, atan2, sqrt
 
-def kalman_filter(mu_prev, Sigma_prev, u_t, z_t, A, B, C, R, Q):
-    """
-    One iteration of a linear Kalman Filter for a 3D pose: (x, y, theta).
+class KalmanFilter:
+    def __init__(self, init_state, init_covariance, process_noise, measurement_noise):
+        """
+        Initialize Kalman Filter for robot localization
+        
+        Parameters:
+        -----------
+        init_state : numpy.ndarray
+            Initial state vector [x, y, theta]
+        init_covariance : numpy.ndarray
+            Initial covariance matrix (3x3)
+        process_noise : numpy.ndarray
+            Process noise covariance matrix (3x3)
+        measurement_noise : numpy.ndarray
+            Measurement noise covariance matrix (3x3)
+        """
+        # State: [x, y, theta]
+        self.mu = init_state
+        self.sigma = init_covariance
+        
+        # Noise covariances
+        self.R = process_noise      # Motion model noise
+        self.Q = measurement_noise  # Measurement model noise
+        
+        # Identity matrix for convenience
+        self.I = np.eye(3)
     
-    Parameters
-    ----------
-    mu_prev : np.ndarray of shape (3, 1)
-        Previous state mean [x, y, theta]^T
-    Sigma_prev : np.ndarray of shape (3, 3)
-        Previous state covariance
-    u_t : np.ndarray of shape (3, 1)
-        Control input at time t [v_x, v_y, v_theta]^T
-    z_t : np.ndarray of shape (3, 1)
-        Measurement at time t [x_meas, y_meas, theta_meas]^T
-    A : np.ndarray of shape (3, 3)
-        State transition matrix
-    B : np.ndarray of shape (3, 3)
-        Control matrix
-    C : np.ndarray of shape (3, 3)
-        Measurement matrix
-    R : np.ndarray of shape (3, 3)
-        Process noise covariance
-    Q : np.ndarray of shape (3, 3)
-        Measurement noise covariance
-
-    Returns
-    -------
-    mu : np.ndarray of shape (3, 1)
-        Updated state mean (posterior)
-    Sigma : np.ndarray of shape (3, 3)
-        Updated state covariance (posterior)
-    """
-    # --- Prediction ---
-    mu_pred = A @ mu_prev + B @ u_t
-    Sigma_pred = A @ Sigma_prev @ A.T + R
-
-    # --- Correction ---
-    # Kalman Gain
-    S = C @ Sigma_pred @ C.T + Q  # Innovation covariance
-    K = Sigma_pred @ C.T @ np.linalg.inv(S)
-
-    # Innovation or residual
-    y_tilde = z_t - (C @ mu_pred)
-
-    # Updated state mean
-    mu = mu_pred + K @ y_tilde
-
-    # Updated state covariance
-    I = np.eye(3)
-    Sigma = (I - K @ C) @ Sigma_pred
+    def predict(self, u, dt):
+        """
+        Prediction step of the Kalman filter
+        
+        Parameters:
+        -----------
+        u : numpy.ndarray
+            Control input [v, omega]
+        dt : float
+            Time step
+        """
+        # State transition matrix A (identity for this model)
+        A = self.I
+        
+        # Control matrix B (depends on current orientation)
+        theta = self.mu[2]
+        B = np.array([
+            [dt * cos(theta), 0],
+            [dt * sin(theta), 0],
+            [0, dt]
+        ])
+        
+        # Prediction equations
+        self.mu = A @ self.mu + B @ u
+        self.sigma = A @ self.sigma @ A.T + self.R
+        
+        return self.mu, self.sigma
     
-    return mu, Sigma
+    def update(self, z):
+        """
+        Update step of the Kalman filter
+        
+        Parameters:
+        -----------
+        z : numpy.ndarray
+            Measurement vector [x, y, theta]
+        """
+        # Measurement matrix C (identity for direct state measurement)
+        C = self.I
+        
+        # Kalman gain
+        K = self.sigma @ C.T @ np.linalg.inv(C @ self.sigma @ C.T + self.Q)
+        
+        # Update equations
+        self.mu = self.mu + K @ (z - C @ self.mu)
+        self.sigma = (self.I - K @ C) @ self.sigma
+        
+        return self.mu, self.sigma

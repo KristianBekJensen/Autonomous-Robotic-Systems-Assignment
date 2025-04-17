@@ -5,6 +5,8 @@ from kinematics import differential_drive_kinematics
 from navigate import navigate
 import sensors as sn
 import maps
+from kalman_filter import KalmanFilter
+from landmark import *
 
 # pygame setup
 pygame.init()
@@ -27,51 +29,55 @@ y = 100
 v_left = 0
 v_right = 0
 
-# Define beacons as (x, y, label)
-features = [
-    (700, 200, "A"),
-    (333, 400, "B"),
-    (667, 600, "C")
+# Define landmarks as (x, y) with index as signature
+landmarks = [
+    (0, 700, 200),
+    (1, 333, 400),
+    (2, 667, 600)
 ]
 
-def draw_features(screen, beacons):
+def draw_landmarks(screen, landmarks):
     font = pygame.font.SysFont('Arial', 16)
-    for bx, by, label in beacons:
-        pygame.draw.circle(screen, (0, 0, 255), (bx, by), 6)  # Blue beacon dot
-        text_surface = font.render(label, True, (0, 0, 0))
-        screen.blit(text_surface, (bx + 8, by - 8))
+    for (i, m_x, m_y) in landmarks:
+        pygame.draw.circle(screen, (0, 0, 255), (m_x, m_y), 6)  # Blue landmark dot
+        text_surface = font.render(f"LM{i}", True, (0, 0, 0))
+        screen.blit(text_surface, (m_x + 8, m_y - 8))
 
 max_sensor_range = 400 - r
 senors_values = np.full(12, max_sensor_range)
 
-def detect_features(theta):
-    for feature in features: 
-        feature_x, feature_y, label = feature
-        distance = math.sqrt((x - feature_x) ** 2 + (y - feature_y) ** 2)
+def detect_landmarks(theta):
+    detected_landmarks = []
+    for landmark in landmarks: 
+        i, m_x, m_y = landmark
+        distance = math.sqrt((x - m_x) ** 2 + (y - m_y) ** 2)
 
         if distance < max_sensor_range:
-            pygame.draw.line(screen, (0, 255, 0), (x, y), (feature_x, feature_y), 2)
+            pygame.draw.line(screen, (0, 255, 0), (x, y), (m_x, m_y), 2)
+            detected_landmarks.append(landmark)
 
-            dx = feature_x - x
-            dy = -(feature_y - y)  # Flip y because Pygame's y-axis increases downward
+    return detected_landmarks
 
-            # Absolute bearing from robot to feature
-            bearing = math.atan2(dy, dx)
+initial_pose = np.array([x, y, theta])
+true_pose = initial_pose.copy()
 
-            # Relative bearing (subtract robot's heading, normalize to [-π, π])
-            relative_bearing = (bearing - theta + math.pi) % (2 * math.pi) - math.pi
+# Initialize Kalman filter
+process_noise = 0.1
+measurement_noise = 0.1
+R = np.diag([process_noise**2, process_noise**2, process_noise**2])  # Process noise
+Q = np.diag([measurement_noise**2, measurement_noise**2, measurement_noise**2])  # Measurement noise
 
-            print(f"Detected {label} at ({feature_x}, {feature_y}) | "
-                  f"Distance: {round(distance, 2)} | "
-                  f"Relative Bearing: {round(math.degrees(relative_bearing), 2)}°")
-            if relative_bearing < 0:
-                print(f"Feature {label} is to the left of the robot.")
-            elif relative_bearing > 0:
-                print(f"Feature {label} is to the right of the robot.")
-            else:
-                print(f"Feature {label} is directly ahead of the robot.")
+# For local localization, start with high confidence (small covariance)
+# For global localization, start with low confidence (large covariance)
+initial_covariance = np.diag([0.1, 0.1, 0.1])  # For local localization
+# initial_covariance = np.diag([10.0, 10.0, 10.0])  # For global localization
 
+kf = KalmanFilter(initial_pose, initial_covariance, R, Q)
 
+# Storage for results
+true_poses = [true_pose.copy()]
+estimated_poses = [kf.mu.copy()]
+covariances = [kf.sigma.copy()]
 
 def point_on_circles_circumference(x, y, r, theta, angle):
     angle = (math.degrees(theta) + angle) % 360
@@ -135,10 +141,10 @@ while running:
     wall_thickness = 3
     walls = maps.draw_map(screen, edges, wall_coords, wall_thickness)
     
-    # Draw features on the map
-    draw_features(screen, features)
-    # Detect features 
-    detect_features(theta)
+    # Draw landmarks on the map
+    draw_landmarks(screen, landmarks)
+    # Detect landmarks 
+    detected_landmarks = detect_landmarks(theta)
 
     # calculate new (potential) state
     state = [x, y, theta]
@@ -147,11 +153,11 @@ while running:
     new_y = y + state_change[1]
     new_theta = (theta + state_change[2]) % (2 * math.pi)
 
+
     # rectangle representation of the robot
     new_robot_rect = pygame.Rect(new_x - r, new_y - r, 2 * r, 2 * r) 
     if debug:
         pygame.draw.circle(screen, "green", (new_x, new_y), r) # Robot if theres no collosions
-    
 
     # Checks for collosions between new postion and old postion
     colliding_walls = []
@@ -196,6 +202,23 @@ while running:
 
     # Update state variables
     x, y, theta = new_x, new_y, new_theta
+    robot_pose = np.array([x, y, theta])
+    true_poses.append(robot_pose)
+
+    # Kalman Filter part
+    v = (v_left + v_right) / 2
+    omega = state_change[2]
+    u = np.array([v, omega])
+
+    measurements = get_landmark_measurements(detected_landmarks, robot_pose)
+    if measurements:
+        z = triangulate_position(measurements, detected_landmarks)
+    else:
+        z = kf.mu.copy()
+    
+    kf.predict(u, 1)
+    kf.update(z)
+
     
     # Draw the robot and it's direction line
     pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
