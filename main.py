@@ -221,18 +221,15 @@ while running:
     pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
     
     measurements = get_landmark_measurements(detected_landmarks, robot_pose)
-    if measurements:
-        if len(measurements) < 2:
-            z = triangulate_position(measurements, detected_landmarks)
+    if len(measurements) > 1:
+        p1, p2 = two_point_triangulate(measurements, landmarks, robot_pose)
+        if p1 != (0,0):
+            if debug:
+                pygame.draw.circle(screen, "purple", p1, 15)
+                pygame.draw.circle(screen, "green", p2, 15)
+            z = [p1[0], p1[1], theta]
         else:
-            p1, p2 = two_point_triangulate(measurements, landmarks, robot_pose)
-            if p1 != (0,0):
-                if debug:
-                    pygame.draw.circle(screen, "purple", p1, 15)
-                    pygame.draw.circle(screen, "green", p2, 15)
-                z = [p1[0], p1[1], theta]
-            else:
-                z = kf.mu.copy()
+            z = kf.mu.copy()
     else:
         z = kf.mu.copy()
     
