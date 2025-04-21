@@ -2,6 +2,7 @@ import pygame
 import math
 import numpy as np
 import itertools
+from collections import deque
 from kinematics import differential_drive_kinematics
 from navigate import navigate
 import sensors as sn
@@ -13,16 +14,17 @@ from utils import draw_covariance_ellipse, draw_dashed_lines
 # pygame setup
 pygame.init()
 
+default_font = pygame.font.SysFont('Arial', 14)
+
 debug = True
 
 #set up display 
-display_width = 1000
+display_width = 720
 display_height = 1000
-
 screen = pygame.display.set_mode((display_width, display_height))
 clock = pygame.time.Clock()
 dt = 0
-r = 40 # robot radius
+r = 30 # robot radius
 
 # Setup Robot intial Pos
 theta = 0
@@ -31,15 +33,22 @@ y = 100
 v_left = 0
 v_right = 0
 
-# Define landmarks as (x, y) with index as signature
+# Define landmarks as (i, x, y) with i as signature
 landmarks = [
-    (0, 700, 200),
-    (1, 333, 400),
-    (2, 333, 800),
-    (3, 667, 600)
+    (0, 0, 0), 
+    (1, 720, 0), 
+    (2, 720, 1000), 
+    (3, 0, 1000),
+    (4, 0, 200),
+    (5, 480, 200),
+    (6, 240, 400), 
+    (7, 720, 400),
+    (8, 240, 800),
+    (9, 480, 600),
+    (10, 480, 1000),
 ]
 
-# how often to “stamp” an uncertainty region (ms)
+# how often to draw an uncertainty region (ms)
 SAMPLE_INTERVAL = 2000  
 last_sample_time = pygame.time.get_ticks()
 
@@ -47,13 +56,12 @@ last_sample_time = pygame.time.get_ticks()
 uncertainty_regions = []
 
 def draw_landmarks(screen, landmarks):
-    font = pygame.font.SysFont('Arial', 16)
     for (i, m_x, m_y) in landmarks:
-        pygame.draw.circle(screen, (0, 0, 255), (m_x, m_y), 6)  # Blue landmark dot
-        text_surface = font.render(f"LM{i}", True, (0, 0, 0))
-        screen.blit(text_surface, (m_x + 8, m_y - 8))
+        pygame.draw.circle(screen, (0, 100, 255), (m_x, m_y), 5)  # Blue landmark dot
+        # text_surface = default_font.render(f"LM{i}", True, (0, 0, 0))
+        # screen.blit(text_surface, (m_x + 8, m_y - 8))
 
-max_sensor_range = 300 - r
+max_sensor_range = 200 - r
 senors_values = np.full(12, max_sensor_range)
 
 def detect_landmarks(theta):
@@ -84,10 +92,13 @@ initial_covariance = np.diag([0.1, 0.1, 0.1])  # For local localization
 
 kf = KalmanFilter(initial_pose, initial_covariance, R, Q)
 
-# Storage for results
-true_poses = [true_pose.copy()]
-estimated_poses = [kf.mu.copy()]
-covariances = [kf.sigma.copy()]
+# storage with limited history
+MAX_POSE_HISTORY = 500
+MAX_UNCERT_HISTORY = 5
+
+true_poses = deque([initial_pose.copy()], maxlen=MAX_POSE_HISTORY)
+estimated_poses = deque([initial_pose.copy()], maxlen=MAX_POSE_HISTORY)
+uncertainty_regions = deque(maxlen=MAX_UNCERT_HISTORY)
 
 def point_on_circles_circumference(x, y, r, theta, angle):
     angle = (math.degrees(theta) + angle) % 360
@@ -99,15 +110,13 @@ def point_on_circles_circumference(x, y, r, theta, angle):
     return x2, y2
 
 def draw_robot_text(x, y, r, theta, angle, text):
-    my_font = pygame.font.SysFont('Comic Sans MS', 14)
-    
     x2, y2 = point_on_circles_circumference(x, y, r, theta, angle)
     
     # Adjust coords from center of textbox to coords topleft of textbox
     x2-=7
     y2-=7
 
-    text_surface = my_font.render(text, False, (0, 0, 0))
+    text_surface = default_font.render(text, False, (0, 0, 0))
     screen.blit(text_surface, (x2,y2))
 
 # Checks for what side robot was previously on and and puts the new coords on the correct side
@@ -139,14 +148,14 @@ while running:
     screen.fill((255,255,255))
 
     # Define the edges for the map (creates a 980x980 area with a 10 pixel margin).
-    edges = [(0, 0), (1000, 0), (1000, 1000), (0, 1000)]
+    edges = [(0, 0), (720, 0), (720, 1000), (0, 1000)]
 
     # Define some walls as an example.
     wall_coords = {
-        "1": ((0, 200), (700, 200)),
-        "2": ((333, 400), (1000, 400)),
-        "3": ((333, 400), (333, 800)),
-        "4": ((667, 600), (667, 1000)),
+        "1": ((0, 200), (480, 200)),
+        "2": ((240, 400), (720, 400)),
+        "3": ((240, 400), (240, 800)),
+        "4": ((480, 600), (480, 1000)),
     }
     wall_thickness = 3
     walls = maps.draw_map(screen, edges, wall_coords, wall_thickness)
@@ -215,7 +224,7 @@ while running:
     robot_pose = np.array([x, y, theta])
     true_poses.append(robot_pose)
 
-    # Draw the true pose trajectory as a solid line
+    # # Draw the true pose trajectory as a solid line
     if len(true_poses) > 1:
         pts = [(px, py) for px, py, _ in true_poses]
         pygame.draw.lines(screen, (0, 0, 0), False, pts, 2)
@@ -226,8 +235,9 @@ while running:
     u = np.array([v, omega])
 
     # Draw the robot and it's direction line
-    pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
-    pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
+    pygame.draw.circle(screen, "black", (x, y), r) # Draw robot
+    pygame.draw.circle(screen, "white", (x, y), r - 2) # Draw robot
+    pygame.draw.line(screen, (140, 0, 140), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 3)
     
     estimated_pose, sigma = kf.predict(u, 1)
     
@@ -240,8 +250,8 @@ while running:
         p1, p2 = two_point_triangulate(measurements, landmarks, robot_pose)
         if p1 != (0,0):
             if debug:
-                pygame.draw.circle(screen, "purple", p1, 15)
-                pygame.draw.circle(screen, "green", p2, 15)
+                pygame.draw.circle(screen, "purple", p1, 10)
+                pygame.draw.circle(screen, "green", p2, 10)
             z = [p1[0], p1[1], theta]
             estimated_pose, sigma = kf.update(z)
         else:
@@ -254,8 +264,8 @@ while running:
             meas_pair = [measurements[i], measurements[j]]
             p1, p2 = two_point_triangulate(meas_pair, landmarks, robot_pose)
             if debug:
-                pygame.draw.circle(screen, "purple", p1, 15)
-                pygame.draw.circle(screen, "green", p2, 15)
+                pygame.draw.circle(screen, "purple", p1, 10)
+                pygame.draw.circle(screen, "green", p2, 10)
             # keep only the true intersection
             if p1 != (0, 0):
                 zs.append(p1)
@@ -320,12 +330,11 @@ while running:
     draw_robot_text(x, y, r/3, theta, 270, str(v_left.__round__(1))) # draw left wheel speed
     draw_robot_text(x, y, r/3, theta, 90, str(v_right.__round__(1))) # draw right wheel speed
     
-    for i in range(12): # draw sensor values
-        draw_robot_text(x, y, r+10, theta, 30*i, str(round(senors_values[i], 1)))
+    # for i in range(12): # draw sensor values
+    #     draw_robot_text(x, y, r+10, theta, 30*i, str(round(senors_values[i], 1)))
 
     # Shows on display
     pygame.display.flip()
     dt = clock.tick(60)
 
 pygame.quit()
-
