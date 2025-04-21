@@ -1,6 +1,7 @@
 import pygame
 import math
 import numpy as np
+import itertools
 from kinematics import differential_drive_kinematics
 from navigate import navigate
 import sensors as sn
@@ -220,8 +221,12 @@ while running:
     pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
     pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
     
+    # Update estimation based on landmarks
     measurements = get_landmark_measurements(detected_landmarks, robot_pose)
-    if len(measurements) > 1:
+    num_detected_landmarks = len(measurements)
+    if num_detected_landmarks <= 1:
+        z = kf.mu.copy()
+    elif num_detected_landmarks == 2:
         p1, p2 = two_point_triangulate(measurements, landmarks, robot_pose)
         if p1 != (0,0):
             if debug:
@@ -230,8 +235,28 @@ while running:
             z = [p1[0], p1[1], theta]
         else:
             z = kf.mu.copy()
+    # more than 2 detected landmarks
     else:
-        z = kf.mu.copy()
+        zs = []
+        # for every unique pair of landmark measurements
+        for i, j in itertools.combinations(range(num_detected_landmarks), 2):
+            meas_pair = [measurements[i], measurements[j]]
+            p1, p2 = two_point_triangulate(meas_pair, landmarks, robot_pose)
+            if debug:
+                pygame.draw.circle(screen, "purple", p1, 15)
+                pygame.draw.circle(screen, "green", p2, 15)
+            # keep only the true intersection
+            if p1 != (0, 0):
+                zs.append(p1)
+
+        if zs:
+            # average all the valid p1’s
+            avg_x = sum(pt[0] for pt in zs) / len(zs)
+            avg_y = sum(pt[1] for pt in zs) / len(zs)
+            z = [avg_x, avg_y, theta]
+        else:
+            # if none of the pairs yielded a valid intersection
+            z = kf.mu.copy()
     
     kf.predict(u, 1)
     estimated_pose, sigma = kf.update(z)
@@ -248,7 +273,7 @@ while running:
 
     ## draw sensors
     state = (x, y, theta)
-    sensor_lines = sn.draw_sensors(screen, state, 100, debug)
+    sensor_lines = sn.draw_sensors(screen, state, 100, False)
 
     # Detect walls with sensors
     activatedSensors = []

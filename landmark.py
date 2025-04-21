@@ -100,7 +100,7 @@ def phi(point, landmark, theta):
     # Normalize angle to [0, 2pi]
     return (phi + np.pi) % (2 * np.pi) 
 
-def two_point_triangulate(measurements, landmarks, robot):
+def two_point_triangulate(measurements, landmarks, robot, noise_sigma=0.5):
     x, y, theta = robot
 
     if len(measurements) > 1:
@@ -128,14 +128,22 @@ def two_point_triangulate(measurements, landmarks, robot):
 
         p1, p2 =  intersect_two_circles(a_x, a_y, a_r, b_x, b_y, b_r)
 
-        
-
         p1_phi = phi(p1, (a_x, a_y), theta)
         p2_phi = phi(p2, (a_x, a_y), theta)
-        if  abs(p1_phi-a_phi) < 0.2:
-            return p1, p2
-        elif abs(p2_phi-a_phi) < 0.2:
-            return p2, p1
-        
+
+        if abs(p1_phi - a_phi) < abs(p2_phi - a_phi):
+            chosen, other = p1, p2
+        else:
+            chosen, other = p2, p1
+
+        noisy_chosen = (
+            chosen[0] + np.random.normal(0, noise_sigma),
+            chosen[1] + np.random.normal(0, noise_sigma)
+        )
+        noisy_other = (
+            other[0] + np.random.normal(0, noise_sigma),
+            other[1] + np.random.normal(0, noise_sigma)
+        )
+        return noisy_chosen, noisy_other
     
     return (0,0), (0,0)
