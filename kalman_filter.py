@@ -39,6 +39,10 @@ class KalmanFilter:
         dt : float
             Time step
         """
+        #add process noise
+        u[0] += np.random.normal(0, self.R[0][0])
+        u[1] += np.random.normal(0, self.R[0][0])
+
         # State transition matrix A (identity for this model)
         A = self.I
         
@@ -53,7 +57,7 @@ class KalmanFilter:
         # Prediction equations
         self.mu = A @ self.mu + B @ u
         self.sigma = A @ self.sigma @ A.T + self.R
-        
+
         return self.mu, self.sigma
     
     def update(self, z):
@@ -70,7 +74,6 @@ class KalmanFilter:
         
         # Kalman gain
         K = self.sigma @ C.T @ np.linalg.inv(C @ self.sigma @ C.T + self.Q)
-        
         # Update equations
         self.mu = self.mu + K @ (z - C @ self.mu)
         self.sigma = (self.I - K @ C) @ self.sigma

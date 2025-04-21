@@ -1,5 +1,6 @@
 import math
 import pygame
+import numpy as np
 
 def draw_dashed_lines(surface, color, points, width=2,dash_length=8, space_length=8):
     """
@@ -49,3 +50,42 @@ def draw_dashed_lines(surface, color, points, width=2,dash_length=8, space_lengt
             pygame.draw.line(surface, color, start_pt, end_pt, width)
         dist += this_len
         draw = not draw
+
+def draw_covariance_ellipse(surface, mean, cov, n_std=2.0,
+                            num_points=36, color=(255,255,0), width=1):
+    """
+    Draw an n_std‑sigma covariance ellipse in pygame.
+
+    surface:    your pygame.Surface
+    mean:       (x, y) tuple in pixel coords
+    cov:        2×2 numpy covariance matrix
+    n_std:      how many standard deviations (e.g. 2 for ~95% region)
+    num_points: how many segments to approximate the ellipse
+    color:      RGB tuple
+    width:      line thickness
+    """
+    vals, vecs = np.linalg.eigh(cov)
+    order = vals.argsort()[::-1]
+    vals = vals[order]
+    vecs = vecs[:, order]
+
+    # radii of the ellipse axes
+    rx = n_std * math.sqrt(vals[0])
+    ry = n_std * math.sqrt(vals[1])
+    # rotation of the ellipse (angle of the largest eigenvector)
+    angle = math.atan2(vecs[1,0], vecs[0,0])
+    ca, sa = math.cos(angle), math.sin(angle)
+    cx, cy = mean
+
+    pts = []
+    for i in range(num_points):
+        θ = 2 * math.pi * i / num_points
+        x_ = rx * math.cos(θ)
+        y_ = ry * math.sin(θ)
+        # rotate then translate
+        xr =  x_*ca - y_*sa + cx
+        yr =  x_*sa + y_*ca + cy
+        pts.append((xr, yr))
+
+    # draw as a polygon
+    pygame.draw.polygon(surface, color, pts, width)

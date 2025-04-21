@@ -8,6 +8,7 @@ import sensors as sn
 import maps
 from kalman_filter import KalmanFilter
 from landmark import *
+from utils import draw_covariance_ellipse, draw_dashed_lines
 
 # pygame setup
 pygame.init()
@@ -38,6 +39,13 @@ landmarks = [
     (3, 667, 600)
 ]
 
+# how often to “stamp” an uncertainty region (ms)
+SAMPLE_INTERVAL = 2000  
+last_sample_time = pygame.time.get_ticks()
+
+# store (mean, cov) tuples
+uncertainty_regions = []
+
 def draw_landmarks(screen, landmarks):
     font = pygame.font.SysFont('Arial', 16)
     for (i, m_x, m_y) in landmarks:
@@ -45,7 +53,7 @@ def draw_landmarks(screen, landmarks):
         text_surface = font.render(f"LM{i}", True, (0, 0, 0))
         screen.blit(text_surface, (m_x + 8, m_y - 8))
 
-max_sensor_range = 400 - r
+max_sensor_range = 300 - r
 senors_values = np.full(12, max_sensor_range)
 
 def detect_landmarks(theta):
@@ -221,10 +229,10 @@ while running:
     pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
     pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
     
-    kf.predict(u, 1)
+    estimated_pose, sigma = kf.predict(u, 1)
     
     # Update estimation based on landmarks
-    measurements = get_landmark_measurements(detected_landmarks, robot_pose)
+    measurements = get_landmark_measurements(detected_landmarks, robot_pose, measurement_noise**2)
     num_detected_landmarks = len(measurements)
     if num_detected_landmarks <= 1:
         z = kf.mu.copy()
@@ -235,6 +243,7 @@ while running:
                 pygame.draw.circle(screen, "purple", p1, 15)
                 pygame.draw.circle(screen, "green", p2, 15)
             z = [p1[0], p1[1], theta]
+            estimated_pose, sigma = kf.update(z)
         else:
             z = kf.mu.copy()
     # more than 2 detected landmarks
@@ -256,21 +265,36 @@ while running:
             avg_x = sum(pt[0] for pt in zs) / len(zs)
             avg_y = sum(pt[1] for pt in zs) / len(zs)
             z = [avg_x, avg_y, theta]
+            estimated_pose, sigma = kf.update(z)
         else:
             # if none of the pairs yielded a valid intersection
             z = kf.mu.copy()
-    
-    estimated_pose, sigma = kf.update(z)
-    estimated_poses.append(estimated_pose)
         
+    estimated_poses.append(estimated_pose)
+    
+    now = pygame.time.get_ticks()
+    if now - last_sample_time >= SAMPLE_INTERVAL:
+        # grab current estimate
+        mean = kf.mu.copy()          # [x, y, θ]
+        cov  = kf.sigma[:2, :2].copy()  # only the x–y block
+        uncertainty_regions.append((mean, cov))
+        last_sample_time = now
+    
+    for mean, cov in uncertainty_regions:
+        draw_covariance_ellipse(
+            screen,
+            mean=(mean[0], mean[1]),
+            cov=cov,
+            n_std=4.0,           
+            num_points=64,
+            color="orange",
+            width=2
+        )
+    
     # Draw the estimated pose trajectory as a dotted line
     if len(estimated_poses) > 1:
         pts = [(px, py) for px, py, _ in estimated_poses]
-        pygame.draw.lines(screen, (255, 0, 255), False, pts, 2)
-
-    
-
-    
+        draw_dashed_lines(screen, "red", pts)
 
     ## draw sensors
     state = (x, y, theta)
