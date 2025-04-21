@@ -131,7 +131,7 @@ def two_point_triangulate(measurements, landmarks, robot):
         
 
         p1_phi = phi(p1, (a_x, a_y), theta)
-        p2_phi = phi(p2, (b_x, b_y), theta)
+        p2_phi = phi(p2, (a_x, a_y), theta)
         if  abs(p1_phi-a_phi) < 0.2:
             return p1, p2
         elif abs(p2_phi-a_phi) < 0.2:
