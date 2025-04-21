@@ -89,3 +89,53 @@ def triangulate_position(measurements, landmarks):
         return np.array([x_sum/count, y_sum/count, theta_sum/count]) # this is z
     else:
         return np.array([0, 0, 0])
+
+def phi(point, landmark, theta):
+    x, y = point
+    m_x, m_y = landmark
+        
+    # Calculate bearing
+    phi = atan2(m_y - y, m_x - x) - theta
+    
+    # Normalize angle to [0, 2pi]
+    return (phi + np.pi) % (2 * np.pi) 
+
+def two_point_triangulate(measurements, landmarks, robot):
+    x, y, theta = robot
+
+    if len(measurements) > 1:
+        a_r, a_phi, a_s =  measurements[0]
+        b_r, b_phi, b_s =  measurements[1]
+
+        lookup = {idx: (x, y) for idx, x, y in landmarks}
+        a_x, a_y = lookup[a_s]
+        b_x, b_y = lookup[b_s]
+
+        import math
+
+        def intersect_two_circles(x1,y1,r1, x2,y2,r2):
+            dx, dy = x2-x1, y2-y1
+            d = math.hypot(dx,dy)
+            if d > r1+r2 or d < abs(r1-r2) or d == 0:
+                return [(0,0), (0,0)]  # no solutions or infinite
+            a = (r1*r1 - r2*r2 + d*d) / (2*d)
+            h = math.sqrt(r1*r1 - a*a)
+            xm = x1 + a*dx/d
+            ym = y1 + a*dy/d
+            rx = -dy * (h/d)
+            ry =  dx * (h/d)
+            return [(xm+rx, ym+ry), (xm-rx, ym-ry)]
+
+        p1, p2 =  intersect_two_circles(a_x, a_y, a_r, b_x, b_y, b_r)
+
+        
+
+        p1_phi = phi(p1, (a_x, a_y), theta)
+        p2_phi = phi(p2, (b_x, b_y), theta)
+        if  abs(p1_phi-a_phi) < 0.2:
+            return p1, p2
+        elif abs(p2_phi-a_phi) < 0.2:
+            return p2, p1
+        
+    
+    return (0,0), (0,0)

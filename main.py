@@ -216,9 +216,23 @@ while running:
     omega = state_change[2]
     u = np.array([v, omega])
 
+    # Draw the robot and it's direction line
+    pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
+    pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
+    
     measurements = get_landmark_measurements(detected_landmarks, robot_pose)
     if measurements:
-        z = triangulate_position(measurements, detected_landmarks)
+        if len(measurements) < 2:
+            z = triangulate_position(measurements, detected_landmarks)
+        else:
+            p1, p2 = two_point_triangulate(measurements, landmarks, robot_pose)
+            if p1 != (0,0):
+                if debug:
+                    pygame.draw.circle(screen, "purple", p1, 15)
+                    pygame.draw.circle(screen, "green", p2, 15)
+                z = [p1[0], p1[1], theta]
+            else:
+                z = kf.mu.copy()
     else:
         z = kf.mu.copy()
     
@@ -232,9 +246,6 @@ while running:
         pygame.draw.lines(screen, (255, 0, 255), False, pts, 2)
 
     
-    # Draw the robot and it's direction line
-    pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
-    pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
 
     
 
