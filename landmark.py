@@ -128,22 +128,27 @@ def two_point_triangulate(measurements, landmarks, robot, noise_sigma=0.5):
 
         p1, p2 =  intersect_two_circles(a_x, a_y, a_r, b_x, b_y, b_r)
 
-        p1_phi = phi(p1, (a_x, a_y), theta)
-        p2_phi = phi(p2, (a_x, a_y), theta)
+        p1_Aphi = phi(p1, (a_x, a_y), theta)
+        p2_Aphi = phi(p2, (a_x, a_y), theta)
+        p1_Bphi = phi(p1, (b_x, b_y), theta)
+        p2_Bphi = phi(p2, (b_x, b_y), theta)
 
-        if abs(p1_phi - a_phi) < abs(p2_phi - a_phi):
+        if abs(p1_Aphi - a_phi) < abs(p2_Aphi - a_phi) and abs(p1_Bphi - b_phi) < abs(p2_Bphi - b_phi):
             chosen, other = p1, p2
-        else:
+        elif abs(p1_Aphi - a_phi) > abs(p2_Aphi - a_phi) and abs(p1_Bphi - b_phi) > abs(p2_Bphi - b_phi):
             chosen, other = p2, p1
+        try:
 
-        noisy_chosen = (
-            chosen[0] + np.random.normal(0, noise_sigma),
-            chosen[1] + np.random.normal(0, noise_sigma)
-        )
-        noisy_other = (
-            other[0] + np.random.normal(0, noise_sigma),
-            other[1] + np.random.normal(0, noise_sigma)
-        )
-        return noisy_chosen, noisy_other
+            noisy_chosen = (
+                chosen[0] + np.random.normal(0, noise_sigma),
+                chosen[1] + np.random.normal(0, noise_sigma)
+            )
+            noisy_other = (
+                other[0] + np.random.normal(0, noise_sigma),
+                other[1] + np.random.normal(0, noise_sigma)
+            )
+            return noisy_chosen, noisy_other
+        except:
+            return (0,0), (0,0)
     
     return (0,0), (0,0)

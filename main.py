@@ -221,6 +221,8 @@ while running:
     pygame.draw.circle(screen, "red", (x, y), r) # Draw robot
     pygame.draw.line(screen, (255, 255, 255), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 2)
     
+    kf.predict(u, 1)
+    
     # Update estimation based on landmarks
     measurements = get_landmark_measurements(detected_landmarks, robot_pose)
     num_detected_landmarks = len(measurements)
@@ -258,7 +260,6 @@ while running:
             # if none of the pairs yielded a valid intersection
             z = kf.mu.copy()
     
-    kf.predict(u, 1)
     estimated_pose, sigma = kf.update(z)
     estimated_poses.append(estimated_pose)
         
