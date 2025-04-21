@@ -28,9 +28,8 @@ def get_landmark_measurements(landmarks, robot_pose, add_noise=True, noise_std=0
         
         # Calculate bearing
         phi = atan2(m_y - y, m_x - x) - theta
-        
-        # Normalize angle to [-pi, pi]
-        phi = (phi + np.pi) % (2 * np.pi) - np.pi
+        # Normalize angle to [0, 2pi]
+        phi = (phi + np.pi) % (2 * np.pi)
         
         # Use landmark index as signature
         s = i
@@ -77,9 +76,8 @@ def triangulate_position(measurements, landmarks):
         estimated_theta = atan2(m_y - y_sum/max(1, count-1), 
                                 m_x - x_sum/max(1, count-1)) - phi
         
-        # Normalize theta
-        estimated_theta = (estimated_theta + np.pi) % (2 * np.pi) - np.pi
-        
+        # Normalize theta [0, 2pi]
+        estimated_theta = (estimated_theta + np.pi) % (2 * np.pi)
         # Update sums
         theta_sum += estimated_theta
         
