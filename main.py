@@ -244,35 +244,7 @@ while running:
     # Update estimation based on landmarks
     measurements = get_landmark_measurements(detected_landmarks, robot_pose, measurement_noise**2)
     num_detected_landmarks = len(measurements)
-    if num_detected_landmarks < 1:
-        z = kf.mu.copy()
-    elif num_detected_landmarks == 1:
-        r_, phi, s = measurements[0]
-        lm_arr = np.array(landmarks)
-        m_x, m_y = lm_arr[lm_arr[:,0] == s, 1:3].ravel()
-
-        # current estimate
-        est_x, est_y, est_theta = kf.mu
-
-        # vector from landmark to estimate
-        dx = est_x - m_x
-        dy = est_y - m_y
-        dist_est = math.hypot(dx, dy)
-
-        # if too close, skip; else normalize
-        if dist_est < 1e-6:
-            z = kf.mu.copy()
-        else:
-            ux, uy = dx/dist_est, dy/dist_est
-            # place the robot exactly r_ away
-            new_x = m_x + ux * r_
-            new_y = m_y + uy * r_
-
-            z = np.array([new_x, new_y, est_theta])
-
-        estimated_pose, sigma = kf.update(z)
-
-    elif num_detected_landmarks == 2:
+    if num_detected_landmarks == 2:
         p1, p2 = two_point_triangulate(measurements, landmarks, robot_pose)
         if p1 != (0,0):
             if debug:
@@ -280,10 +252,8 @@ while running:
                 pygame.draw.circle(screen, "green", p2, 10)
             z = [p1[0], p1[1], theta]
             estimated_pose, sigma = kf.update(z)
-        else:
-            z = kf.mu.copy()
     # more than 2 detected landmarks
-    else:
+    elif num_detected_landmarks > 2:
         zs = []
         # for every unique pair of landmark measurements
         for i, j in itertools.combinations(range(num_detected_landmarks), 2):
@@ -302,9 +272,6 @@ while running:
             avg_y = sum(pt[1] for pt in zs) / len(zs)
             z = [avg_x, avg_y, theta]
             estimated_pose, sigma = kf.update(z)
-        else:
-            # if none of the pairs yielded a valid intersection
-            z = kf.mu.copy()
         
     estimated_poses.append(estimated_pose)
     
@@ -332,7 +299,7 @@ while running:
         pts = [(px, py) for px, py, _ in estimated_poses]
         draw_dashed_lines(screen, "red", pts)
 
-    ## draw sensors
+    # Draw sensors
     state = (x, y, theta)
     sensor_lines = sn.draw_sensors(screen, state, 100, False)
 
