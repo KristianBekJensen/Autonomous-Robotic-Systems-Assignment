@@ -61,7 +61,7 @@ def draw_landmarks(screen, landmarks):
         # text_surface = default_font.render(f"LM{i}", True, (0, 0, 0))
         # screen.blit(text_surface, (m_x + 8, m_y - 8))
 
-max_sensor_range = 200 - r
+max_sensor_range = 250 - r
 senors_values = np.full(12, max_sensor_range)
 
 def detect_landmarks(theta):
@@ -79,11 +79,13 @@ def detect_landmarks(theta):
 initial_pose = np.array([x, y, theta])
 true_pose = initial_pose.copy()
 
-# Initialize Kalman filter
-process_noise = 0.2
-measurement_noise = 0.2
-R = np.diag([process_noise**2, process_noise**2, process_noise**2])  # Process noise
-Q = np.diag([measurement_noise**2, measurement_noise**2, measurement_noise**2])  # Measurement noise
+# Define Real noise
+process_noise = 0.1
+position_measurement_noise = 1
+theta_mesurement_noise = 0.5
+# Initialize Kalman
+R = np.diag([2, 2, 0.2**2])  # Process noise
+Q = np.diag([2, 2, 0.2**2])  # Measurement noise
 
 # For local localization, start with high confidence (small covariance)
 # For global localization, start with low confidence (large covariance)
@@ -92,13 +94,9 @@ initial_covariance = np.diag([0.1, 0.1, 0.1])  # For local localization
 
 kf = KalmanFilter(initial_pose, initial_covariance, R, Q)
 
-# storage with limited history
-MAX_POSE_HISTORY = 500
-MAX_UNCERT_HISTORY = 5
-
-true_poses = deque([initial_pose.copy()], maxlen=MAX_POSE_HISTORY)
-estimated_poses = deque([initial_pose.copy()], maxlen=MAX_POSE_HISTORY)
-uncertainty_regions = deque(maxlen=MAX_UNCERT_HISTORY)
+true_poses = []
+estimated_poses = []
+uncertainty_regions = []
 
 def point_on_circles_circumference(x, y, r, theta, angle):
     angle = (math.degrees(theta) + angle) % 360
@@ -239,38 +237,40 @@ while running:
     pygame.draw.circle(screen, "white", (x, y), r - 2) # Draw robot
     pygame.draw.line(screen, (140, 0, 140), (x, y), (np.cos(theta) * r + x, np.sin(theta) * r + y), 3)
     
-    estimated_pose, sigma = kf.predict(u, 1)
+    estimated_pose, sigma = kf.predict(u, 1, process_noise)
     
     # Update estimation based on landmarks
-    measurements = get_landmark_measurements(detected_landmarks, robot_pose, measurement_noise**2)
+    measurements = get_landmark_measurements(detected_landmarks, robot_pose)
     num_detected_landmarks = len(measurements)
     if num_detected_landmarks == 2:
-        p1, p2 = two_point_triangulate(measurements, landmarks, robot_pose)
+        p1, p2, estimate_theta = two_point_triangulate(measurements, landmarks, robot_pose, position_measurement_noise, theta_mesurement_noise)
         if p1 != (0,0):
             if debug:
                 pygame.draw.circle(screen, "purple", p1, 10)
                 pygame.draw.circle(screen, "green", p2, 10)
-            z = [p1[0], p1[1], theta]
+            z = [p1[0], p1[1], estimate_theta]
             estimated_pose, sigma = kf.update(z)
     # more than 2 detected landmarks
     elif num_detected_landmarks > 2:
         zs = []
+        avg_theta = 0
         # for every unique pair of landmark measurements
         for i, j in itertools.combinations(range(num_detected_landmarks), 2):
             meas_pair = [measurements[i], measurements[j]]
-            p1, p2 = two_point_triangulate(meas_pair, landmarks, robot_pose)
+            p1, p2, estimate_theta = two_point_triangulate(meas_pair, landmarks, robot_pose, position_measurement_noise, theta_mesurement_noise)
             if debug:
                 pygame.draw.circle(screen, "purple", p1, 10)
                 pygame.draw.circle(screen, "green", p2, 10)
             # keep only the true intersection
             if p1 != (0, 0):
+                avg_theta += estimate_theta
                 zs.append(p1)
 
         if zs:
             # average all the valid p1’s
             avg_x = sum(pt[0] for pt in zs) / len(zs)
             avg_y = sum(pt[1] for pt in zs) / len(zs)
-            z = [avg_x, avg_y, theta]
+            z = [avg_x, avg_y, avg_theta/len(zs)]
             estimated_pose, sigma = kf.update(z)
         
     estimated_poses.append(estimated_pose)
@@ -297,7 +297,7 @@ while running:
     # Draw the estimated pose trajectory as a dotted line
     if len(estimated_poses) > 1:
         pts = [(px, py) for px, py, _ in estimated_poses]
-        draw_dashed_lines(screen, "red", pts)
+        pygame.draw.lines(screen, "red", False, pts, 2)
 
     # Draw sensors
     state = (x, y, theta)

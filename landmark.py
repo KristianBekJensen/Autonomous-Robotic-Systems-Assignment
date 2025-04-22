@@ -1,7 +1,7 @@
 import numpy as np
 from math import cos, sin, atan2, sqrt
 
-def get_landmark_measurements(landmarks, robot_pose, add_noise=True, noise_std=0.1):
+def get_landmark_measurements(landmarks, robot_pose):
     """
     Get measurements to landmarks (range, bearing, signature)
     
@@ -33,11 +33,6 @@ def get_landmark_measurements(landmarks, robot_pose, add_noise=True, noise_std=0
         
         # Use landmark index as signature
         s = i
-        
-        # Add noise if requested
-        if add_noise:
-            r += np.random.normal(0, noise_std)
-            phi += np.random.normal(0, noise_std)
         
         measurements.append((r, phi, s))
     
@@ -100,8 +95,8 @@ def phi(point, landmark, theta):
     # Normalize angle to [0, 2pi]
     return (phi + np.pi) % (2 * np.pi) 
 
-def two_point_triangulate(measurements, landmarks, robot, noise_sigma=0.5):
-    x, y, theta = robot
+def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_noise):
+    _, _, theta = robot
 
     if len(measurements) > 1:
         a_r, a_phi, a_s =  measurements[0]
@@ -140,15 +135,17 @@ def two_point_triangulate(measurements, landmarks, robot, noise_sigma=0.5):
         try:
 
             noisy_chosen = (
-                chosen[0] + np.random.normal(0, noise_sigma),
-                chosen[1] + np.random.normal(0, noise_sigma)
+                chosen[0] + np.random.normal(0, position_noise),
+                chosen[1] + np.random.normal(0, position_noise)
             )
             noisy_other = (
-                other[0] + np.random.normal(0, noise_sigma),
-                other[1] + np.random.normal(0, noise_sigma)
+                other[0] + np.random.normal(0, position_noise),
+                other[1] + np.random.normal(0, position_noise)
             )
-            return noisy_chosen, noisy_other
+
+            noisy_theta = theta + np.random.normal(0, theta_noise)
+            return noisy_chosen, noisy_other, noisy_theta
         except:
-            return (0,0), (0,0)
+            return (0,0), (0,0), 0
     
-    return (0,0), (0,0)
+    return (0,0), (0,0), 0

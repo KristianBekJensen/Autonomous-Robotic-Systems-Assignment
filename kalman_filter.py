@@ -28,7 +28,7 @@ class KalmanFilter:
         # Identity matrix for convenience
         self.I = np.eye(3)
     
-    def predict(self, u, dt):
+    def predict(self, u, dt, noise):
         """
         Prediction step of the Kalman filter
         
@@ -40,8 +40,8 @@ class KalmanFilter:
             Time step
         """
         #add process noise
-        u[0] += np.random.normal(0, self.R[0][0])
-        u[1] += np.random.normal(0, self.R[0][0])
+        u[0] += np.random.normal(0, noise)
+        u[1] += np.random.normal(0, noise)
 
         # State transition matrix A (identity for this model)
         A = self.I
