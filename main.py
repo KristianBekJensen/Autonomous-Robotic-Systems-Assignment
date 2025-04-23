@@ -319,6 +319,9 @@ while running:
     # React on key inputs from the user and adjust wheel speeds
     keys = pygame.key.get_pressed()
     v_left, v_right = navigate(keys, v_left, v_right)
+    # clear trajectory visualizations pressing c on keyboard
+    if keys[pygame.K_c]:
+        estimated_poses, true_poses, uncertainty_regions = [], [], []
     
     draw_robot_text(x, y, r/3, theta, 270, str(v_left.__round__(1))) # draw left wheel speed
     draw_robot_text(x, y, r/3, theta, 90, str(v_right.__round__(1))) # draw right wheel speed
