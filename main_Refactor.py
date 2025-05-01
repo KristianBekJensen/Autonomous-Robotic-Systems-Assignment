@@ -82,8 +82,7 @@ while running:
         pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
 
     robot.draw_Robot(screen)
-    robot.sensors_on(screen, draw=True)
-    robot.sense(walls)
+    robot.sense(walls, screen=screen, draw=True)
 
     # detect landmarks
     detected_landmarks = robot.detect_landmarks(landmarks, screen)

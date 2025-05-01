@@ -191,8 +191,9 @@ class Robot:
                 color="orange",
                 width=2
             )
-
-    def sensors_on(self, screen=None, draw=False):
+    
+    def sense(self, walls, screen=None, draw=False):
+        self.sensor_values = np.full(self.num_sensors, self.max_sensor_range)
         self.sensor_lines = []
         for i in range(self.num_sensors):
             angle = self.theta + (i * (2 * math.pi / self.num_sensors))
@@ -201,12 +202,7 @@ class Robot:
             self.sensor_lines.append([i, (start, end)])
             if draw and screen:
                 pygame.draw.line(screen, "black", start, end)
-        return self.sensor_lines
 
-    
-    def sense(self, walls):
-        self.sensor_values = np.full(self.num_sensors, self.max_sensor_range)
-        self.sensors_on()
         for i, (start, end) in self.sensor_lines:
             min_dist = self.max_sensor_range
             for wall in walls:
