@@ -63,7 +63,7 @@ def line_through_grid(start, end, grid_size):
     
     return cells[0:-1], cells[-1]
 
-def get_observed_cells(robot, grid_size):
+def get_observed_cells(robot, grid_size, world_width, world_height):
     free_cells = set()
     occipied_cells= set()
     for i in range(robot.num_sensors):
@@ -73,9 +73,12 @@ def get_observed_cells(robot, grid_size):
             (robot.x, robot.y), 
             (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
             grid_size)
-        free_cells.update(free_cell)
-        if robot.sensor_values[i] == robot.max_sensor_range:
-            free_cells.add(last_cell)
-        else:
-            occipied_cells.add(last_cell)
+        for cell in free_cell:
+            if cell[0] < world_width and  cell[1] < world_height:
+                free_cells.add(cell)
+        if last_cell[0] < world_width and  last_cell[1] < world_height:
+            if robot.sensor_values[i] == robot.max_sensor_range:
+                free_cells.add(last_cell)
+            else:
+                occipied_cells.add(last_cell)
     return free_cells, occipied_cells

@@ -19,10 +19,11 @@ pygame.init()
 
 default_font = pygame.font.SysFont('Arial', 10)
 
-draw_observed_cells = True
+draw_observed_cells = False
 draw_landmark_line = False
 draw_sigma = False
 draw_estimated_path = False
+draw_sensors = False
 
 #set up display 
 clock = pygame.time.Clock()
@@ -64,11 +65,13 @@ WALL_THICKNESS = 4
 MAP_WIDTH = N_X * BLOCK_WIDTH
 MAP_HEIGHT = N_Y * BLOCK_HEIGHT
 
+# Mapping Setup
 GRID_SIZE = WALL_THICKNESS
+grid = np.zeros((int(MAP_WIDTH/GRID_SIZE), int(MAP_HEIGHT/GRID_SIZE)))     
 
 screen = pygame.display.set_mode((MAP_WIDTH, MAP_HEIGHT))
-grid = generate_sample_map(N_X, N_Y)
-walls, landmarks = draw_map(screen, grid, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
+blocks = generate_sample_map(N_X, N_Y)
+walls, landmarks = draw_map(screen, blocks, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
 
 # Game Loop 
 running = True
@@ -82,12 +85,12 @@ while running:
     # reset screen
     screen.fill((255,255,255))
 
-    draw_map(screen, grid, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
+    draw_map(screen, blocks, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
     for (i,m_x,m_y) in landmarks:
         pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
 
     robot.draw_Robot(screen)
-    robot.sense(walls, screen=screen, draw=True)
+    robot.sense(walls, screen, draw_sensors)
 
     # detect landmarks
     detected_landmarks = robot.detect_landmarks(landmarks, screen, draw_landmark_line)
@@ -117,12 +120,24 @@ while running:
     if draw_sigma:
         robot.draw_uncertainty_ellipse(screen)
     
-    free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE)
+    free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, int(MAP_WIDTH/GRID_SIZE), int(MAP_HEIGHT/GRID_SIZE))
     
     if draw_observed_cells:
-        draw_cells(free_cells, screen, GRID_SIZE, GRID_SIZE)
-        draw_cells(occipied_cells, screen, GRID_SIZE, GRID_SIZE, "green")
-    
+        draw_cells(free_cells, screen, GRID_SIZE)
+        draw_cells(occipied_cells, screen, GRID_SIZE, "green")
+
+    for free in free_cells:
+        grid[free[0]][free[1]] += -0.85
+
+    for occ in occipied_cells:
+        grid[occ[0]][occ[1]] += 2.2
+
+    for i in range(len(grid)):
+        for j in range(len(grid[i])):
+            if grid[i][j] > 0:
+                draw_cells_filled([(i, j)], screen, GRID_SIZE, "purple")
+
+
     # Shows on display
     pygame.display.flip()
 
