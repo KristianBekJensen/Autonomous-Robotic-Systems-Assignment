@@ -21,6 +21,8 @@ default_font = pygame.font.SysFont('Arial', 10)
 
 draw_observed_cells = True
 draw_landmark_line = False
+draw_sigma = False
+draw_estimated_path = False
 
 #set up display 
 clock = pygame.time.Clock()
@@ -99,7 +101,8 @@ while running:
     robot.move(walls)
 
     # Draw the robot's trajectory
-    # robot.drawTrajectories(screen)
+    if draw_estimated_path:
+        robot.drawTrajectories(screen)
 
     # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
     now = pygame.time.get_ticks()
@@ -109,7 +112,9 @@ while running:
         cov  = kf.sigma[:2, :2].copy()  # only the x–y block
         robot.uncertainty_regions.append((mean, cov))
         last_sample_time = now
-    #robot.draw_uncertainty_ellipse(screen)
+    if draw_sigma:
+        robot.draw_uncertainty_ellipse(screen)
+    
     free_cells = set()
     occipied_cells= set()
     grid_size = WALL_THICKNESS
