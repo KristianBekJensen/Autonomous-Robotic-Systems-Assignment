@@ -212,6 +212,6 @@ class Robot:
                 if clipped_line:
                     (cl_start_x, cl_start_y), _ = clipped_line
                     dist = math.sqrt((cl_start_x - self.x) ** 2 + (cl_start_y - self.y) ** 2) - self.radius
-                    if dist < min_dist:
+                    if dist < min_dist and dist < self.sensor_values[i]:
                         self.sensor_values[i] = dist
         return self.sensor_values
