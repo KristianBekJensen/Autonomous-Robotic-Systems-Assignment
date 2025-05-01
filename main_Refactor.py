@@ -4,7 +4,7 @@ import numpy as np
 import itertools
 from collections import deque
 from kinematics import differential_drive_kinematics
-from mapping import line_through_grid
+from mapping import get_observed_cells, line_through_grid
 from navigate import navigate
 import sensors as sn
 import maps
@@ -64,6 +64,8 @@ WALL_THICKNESS = 4
 MAP_WIDTH = N_X * BLOCK_WIDTH
 MAP_HEIGHT = N_Y * BLOCK_HEIGHT
 
+GRID_SIZE = WALL_THICKNESS
+
 screen = pygame.display.set_mode((MAP_WIDTH, MAP_HEIGHT))
 grid = generate_sample_map(N_X, N_Y)
 walls, landmarks = draw_map(screen, grid, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
@@ -115,25 +117,11 @@ while running:
     if draw_sigma:
         robot.draw_uncertainty_ellipse(screen)
     
-    free_cells = set()
-    occipied_cells= set()
-    grid_size = WALL_THICKNESS
-    for i in range(robot.num_sensors):
-        sensor_theta = (robot.theta + (2*np.pi/robot.num_sensors*i)) % (2*np.pi)
-        
-        free_cell, last_cell = line_through_grid(
-            (robot.x, robot.y), 
-            (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
-            grid_size)
-        free_cells.update(free_cell)
-        if robot.sensor_values[i] == robot.max_sensor_range:
-            free_cells.add(last_cell)
-        else:
-            occipied_cells.add(last_cell)
-            
+    free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE)
+    
     if draw_observed_cells:
-        draw_cells(free_cells, screen, grid_size, grid_size)
-        draw_cells(occipied_cells, screen, grid_size, grid_size, "green")
+        draw_cells(free_cells, screen, GRID_SIZE, GRID_SIZE)
+        draw_cells(occipied_cells, screen, GRID_SIZE, GRID_SIZE, "green")
     
     # Shows on display
     pygame.display.flip()

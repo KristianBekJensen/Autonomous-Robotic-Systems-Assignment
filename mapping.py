@@ -1,3 +1,5 @@
+import math
+import numpy as np
 def line_through_grid(start, end, grid_size):
     """
     Determines all grid cells that a line from start to end passes through.
@@ -60,3 +62,20 @@ def line_through_grid(start, end, grid_size):
             cells.append(cell)
     
     return cells[0:-1], cells[-1]
+
+def get_observed_cells(robot, grid_size):
+    free_cells = set()
+    occipied_cells= set()
+    for i in range(robot.num_sensors):
+        sensor_theta = (robot.theta + (2*np.pi/robot.num_sensors*i)) % (2*np.pi)
+        
+        free_cell, last_cell = line_through_grid(
+            (robot.x, robot.y), 
+            (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
+            grid_size)
+        free_cells.update(free_cell)
+        if robot.sensor_values[i] == robot.max_sensor_range:
+            free_cells.add(last_cell)
+        else:
+            occipied_cells.add(last_cell)
+    return free_cells, occipied_cells
