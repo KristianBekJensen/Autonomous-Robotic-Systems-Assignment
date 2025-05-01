@@ -1,0 +1,114 @@
+import pygame
+import math
+import numpy as np
+import itertools
+from collections import deque
+from kinematics import differential_drive_kinematics
+from navigate import navigate
+import sensors as sn
+import maps
+from kalman_filter import KalmanFilter
+from landmark import *
+from utils import draw_covariance_ellipse, draw_dashed_lines
+from map_Refactor import *
+from robot import Robot
+
+# pygame setup
+pygame.init()
+
+default_font = pygame.font.SysFont('Arial', 10)
+
+debug = True
+
+#set up display 
+clock = pygame.time.Clock()
+
+# Setup Robot Parameter
+theta = 0
+x = 100
+y = 100
+v_left = 0
+v_right = 0
+r = 20 # robot radius
+initial_pose = np.array([x, y, theta])
+
+robot = Robot() # rn generic parameters match above, apply changes if needed 
+
+# Setup Kalman Filter
+process_noise = 0.1
+position_measurement_noise = 1
+theta_mesurement_noise = 0.5
+R = np.diag([2, 2, 0.2**2])  # Process noise
+Q = np.diag([2, 2, 0.2**2])  # Measurement noise
+initial_covariance = np.diag([0.1, 0.1, 0.1])  # For local localization
+SAMPLE_INTERVAL = 2000
+last_sample_time = pygame.time.get_ticks()
+
+
+kf = KalmanFilter(initial_pose, initial_covariance, R, Q)
+
+
+# Map and Screen Setup
+N_X = 20
+N_Y = 10
+BLOCK_WIDTH = 80
+BLOCK_HEIGHT = BLOCK_WIDTH
+WALL_THICKNESS = 4
+MAP_WIDTH = N_X * BLOCK_WIDTH
+MAP_HEIGHT = N_Y * BLOCK_HEIGHT
+
+screen = pygame.display.set_mode((MAP_WIDTH, MAP_HEIGHT))
+grid = generate_sample_map(N_X, N_Y)
+walls, landmarks = draw_map(screen, grid, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
+
+# Game Loop 
+running = True
+while running:
+
+    #check for close game
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    # reset screen
+    screen.fill((255,255,255))
+
+    draw_map(screen, grid, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
+    for (i,m_x,m_y) in landmarks:
+        pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
+
+    robot.draw_Robot(screen)
+    #robot.draw_sensors(screen, sensor_length=robot.max_sensor_range, draw=True)
+
+    # detect landmarks
+    detected_landmarks = robot.detect_landmarks(landmarks, screen)
+    robot.estimate_pose(kf, landmarks, detected_landmarks, screen, position_measurement_noise, theta_mesurement_noise, process_noise)
+
+    # React on key inputs from the user and adjust wheel speeds
+    keys = pygame.key.get_pressed()
+    v_left, v_right = navigate(keys, robot.v_left, robot.v_right)
+    robot.v_left = v_left
+    robot.v_right = v_right
+
+    # Move the robot and execute collision handling
+    robot.move(walls)
+
+    # Draw the robot's trajectory
+    robot.drawTrajectories(screen)
+
+    # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
+    now = pygame.time.get_ticks()
+    if now - last_sample_time >= SAMPLE_INTERVAL:
+        # grab current estimate
+        mean = kf.mu.copy()          # [x, y, θ]
+        cov  = kf.sigma[:2, :2].copy()  # only the x–y block
+        robot.uncertainty_regions.append((mean, cov))
+        last_sample_time = now
+    robot.draw_uncertainty_ellipse(screen)
+
+    # Shows on display
+    pygame.display.flip()
+
+    clock.tick(60)
+
+pygame.quit()
