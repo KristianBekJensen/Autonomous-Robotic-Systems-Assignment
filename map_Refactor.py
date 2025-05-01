@@ -102,3 +102,13 @@ def check_y_wall(wall, new_y, y, r):
     elif y >= wall.y + wall.height: # Robot below
         new_y = wall.y + wall.height + r
     return new_y
+
+def draw_cells(cells, screen, block_width, block_height):
+    for cell in cells:
+        rect = pygame.Rect(
+            cell[1] * block_width,
+            cell[0] * block_height,
+            block_width,
+            block_height
+        )
+        pygame.draw.rect(screen, (255, 0, 0), rect, 1)  # Draw the cell with a red border

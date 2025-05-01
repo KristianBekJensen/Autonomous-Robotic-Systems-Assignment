@@ -15,7 +15,6 @@ class Robot:
                  y: float = 100.0, 
                  theta: float = 0.0, 
                  radius: float = 20.0,
-                 max_v: float = 50.0,
                  axel_length: float = 10.0,
                  max_sensor_range: float = 100.0,
                  num_sensors: int = 12,

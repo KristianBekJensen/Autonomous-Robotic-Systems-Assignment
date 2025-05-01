@@ -4,6 +4,7 @@ import numpy as np
 import itertools
 from collections import deque
 from kinematics import differential_drive_kinematics
+from mapping import line_through_grid
 from navigate import navigate
 import sensors as sn
 import maps
@@ -32,7 +33,7 @@ v_right = 0
 r = 20 # robot radius
 initial_pose = np.array([x, y, theta])
 axel_length = 15 # distance between wheels
-max_sensor_range = 100 # max sensor range
+max_sensor_range = 500 # max sensor range
 
 robot = Robot(x,y,theta,r, axel_length, max_sensor_range) # rn generic parameters match above, apply changes if needed 
 
@@ -107,7 +108,15 @@ while running:
         cov  = kf.sigma[:2, :2].copy()  # only the x–y block
         robot.uncertainty_regions.append((mean, cov))
         last_sample_time = now
-    # robot.draw_uncertainty_ellipse(screen)
+    #robot.draw_uncertainty_ellipse(screen)
+
+    cells = line_through_grid(
+        (robot.x, robot.y), 
+        (robot.x + robot.max_sensor_range * math.cos(robot.theta), robot.y + robot.max_sensor_range * math.sin(robot.theta)),
+        BLOCK_WIDTH)
+    
+    draw_cells(cells, screen, BLOCK_WIDTH, BLOCK_HEIGHT)
+    pygame.draw.line(screen, (255, 0, 0), (robot.x, robot.y), (robot.x + robot.max_sensor_range * math.cos(robot.theta), robot.y + robot.max_sensor_range * math.sin(robot.theta)), 1)
 
     # Shows on display
     pygame.display.flip()
