@@ -114,7 +114,11 @@ def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_
             if d > r1+r2 or d < abs(r1-r2) or d == 0:
                 return [(0,0), (0,0)]  # no solutions or infinite
             a = (r1*r1 - r2*r2 + d*d) / (2*d)
-            h = math.sqrt(r1*r1 - a*a)
+            h_sq = r1*r1 - a*a
+            if h_sq < 0:
+                h_sq = 0  # correct small negative due to floating point errors
+            h = math.sqrt(h_sq)
+
             xm = x1 + a*dx/d
             ym = y1 + a*dy/d
             rx = -dy * (h/d)
