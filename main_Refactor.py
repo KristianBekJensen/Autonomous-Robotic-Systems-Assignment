@@ -34,8 +34,9 @@ r = 20 # robot radius
 initial_pose = np.array([x, y, theta])
 axel_length = 15 # distance between wheels
 max_sensor_range = 500 # max sensor range
+num_sensors = 96
 
-robot = Robot(x,y,theta,r, axel_length, max_sensor_range) # rn generic parameters match above, apply changes if needed 
+robot = Robot(x,y,theta,r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
 
 # Setup Kalman Filter
 process_noise = 0.1
@@ -109,15 +110,19 @@ while running:
         robot.uncertainty_regions.append((mean, cov))
         last_sample_time = now
     #robot.draw_uncertainty_ellipse(screen)
-
-    cells = line_through_grid(
-        (robot.x, robot.y), 
-        (robot.x + robot.max_sensor_range * math.cos(robot.theta), robot.y + robot.max_sensor_range * math.sin(robot.theta)),
-        BLOCK_WIDTH)
+    cells = set()
+    grid_size = WALL_THICKNESS
+    for i in range(robot.num_sensors):
+        sensor_theta = (robot.theta + (2*np.pi/robot.num_sensors*i)) % (2*np.pi)
+        cells.update(
+                line_through_grid(
+                    (robot.x, robot.y), 
+                    (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
+                    grid_size)
+                )
+    if debug:
+        draw_cells(cells, screen, grid_size, grid_size)
     
-    draw_cells(cells, screen, BLOCK_WIDTH, BLOCK_HEIGHT)
-    pygame.draw.line(screen, (255, 0, 0), (robot.x, robot.y), (robot.x + robot.max_sensor_range * math.cos(robot.theta), robot.y + robot.max_sensor_range * math.sin(robot.theta)), 1)
-
     # Shows on display
     pygame.display.flip()
 

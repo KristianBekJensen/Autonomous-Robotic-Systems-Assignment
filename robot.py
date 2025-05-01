@@ -1,3 +1,4 @@
+from doctest import debug
 import numpy as np
 import pygame
 import math
@@ -87,7 +88,8 @@ class Robot:
             distance = math.sqrt((self.x - m_x) ** 2 + (self.y - m_y) ** 2)
 
             if distance < self.max_sensor_range:
-                pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (m_x, m_y), 2)
+                if debug:
+                    pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (m_x, m_y), 2)
                 detected_landmarks.append(landmark)
 
         return detected_landmarks
