@@ -31,8 +31,10 @@ v_left = 0
 v_right = 0
 r = 20 # robot radius
 initial_pose = np.array([x, y, theta])
+axel_length = 15 # distance between wheels
+max_sensor_range = 100 # max sensor range
 
-robot = Robot() # rn generic parameters match above, apply changes if needed 
+robot = Robot(x,y,theta,r, axel_length, max_sensor_range) # rn generic parameters match above, apply changes if needed 
 
 # Setup Kalman Filter
 process_noise = 0.1
