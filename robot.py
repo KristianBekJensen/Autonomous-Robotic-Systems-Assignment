@@ -36,12 +36,14 @@ class Robot:
         self.v_right = 0.0
         
         # Sensors
+        self.num_sensors = num_sensors
         self.max_sensor_range = max_sensor_range
+        self.sensor_lines = []
         
         # Trajectories
         self.true_poses = [(x, y, theta)]
         self.estimated_poses = [(x, y, theta)]
-        self.sensor_values = np.full(12, max_sensor_range) 
+        self.sensor_values = np.full(self.num_sensors, max_sensor_range) 
         self.uncertainty_regions = []
         
     def move(self, walls):
@@ -177,20 +179,6 @@ class Robot:
         text_surface = font.render(text, False, (0, 0, 0))
         screen.blit(text_surface, (x2,y2))
     
-    def draw_sensors(self, screen, sensor_length, draw):
-        #x, y, theta = robot_state
-        sensor_lines = []
-        for i in range(12):
-            angle = self.theta + (i * (math.pi / 6))
-            dx = sensor_length * math.cos(angle)
-            dy = sensor_length * math.sin(angle)
-            start = (self.x, self.y)
-            end = (self.x + dx, self.y + dy)
-            sensor_lines.append([i, (start, end)])
-            if draw:
-                pygame.draw.line(screen, "black", start, end)
-        return sensor_lines
-   
     def draw_uncertainty_ellipse(self, screen):
         for mean, cov in self.uncertainty_regions:
             draw_covariance_ellipse(
@@ -202,3 +190,29 @@ class Robot:
                 color="orange",
                 width=2
             )
+
+    def sensors_on(self, screen=None, draw=False):
+        self.sensor_lines = []
+        for i in range(self.num_sensors):
+            angle = self.theta + (i * (2 * math.pi / self.num_sensors))
+            start = (self.x, self.y)
+            end = (self.x + self.max_sensor_range * math.cos(angle), self.y + self.max_sensor_range * math.sin(angle))
+            self.sensor_lines.append([i, (start, end)])
+            if draw and screen:
+                pygame.draw.line(screen, "black", start, end)
+        return self.sensor_lines
+
+    
+    def sense(self, walls):
+        self.sensor_values = np.full(self.num_sensors, self.max_sensor_range)
+        self.sensors_on()
+        for i, (start, end) in self.sensor_lines:
+            min_dist = self.max_sensor_range
+            for wall in walls:
+                clipped_line = wall.clipline(start, end)
+                if clipped_line:
+                    (cl_start_x, cl_start_y), _ = clipped_line
+                    dist = math.sqrt((cl_start_x - self.x) ** 2 + (cl_start_y - self.y) ** 2) - self.radius
+                    if dist < min_dist:
+                        self.sensor_values[i] = dist
+        return self.sensor_values

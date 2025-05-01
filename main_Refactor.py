@@ -80,7 +80,8 @@ while running:
         pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
 
     robot.draw_Robot(screen)
-    #robot.draw_sensors(screen, sensor_length=robot.max_sensor_range, draw=True)
+    robot.sensors_on(screen, draw=True)
+    robot.sense(walls)
 
     # detect landmarks
     detected_landmarks = robot.detect_landmarks(landmarks, screen)
@@ -96,7 +97,7 @@ while running:
     robot.move(walls)
 
     # Draw the robot's trajectory
-    robot.drawTrajectories(screen)
+    # robot.drawTrajectories(screen)
 
     # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
     now = pygame.time.get_ticks()
@@ -106,7 +107,7 @@ while running:
         cov  = kf.sigma[:2, :2].copy()  # only the x–y block
         robot.uncertainty_regions.append((mean, cov))
         last_sample_time = now
-    robot.draw_uncertainty_ellipse(screen)
+    # robot.draw_uncertainty_ellipse(screen)
 
     # Shows on display
     pygame.display.flip()
