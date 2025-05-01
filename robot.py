@@ -193,23 +193,32 @@ class Robot:
             )
     
     def sense(self, walls, screen=None, draw=False):
-        self.sensor_values = np.full(self.num_sensors, self.max_sensor_range)
+        self.sensor_values = np.full(self.num_sensors, self.max_sensor_range, dtype=float)
         self.sensor_lines = []
-        for i in range(self.num_sensors):
-            angle = self.theta + (i * (2 * math.pi / self.num_sensors))
-            start = (self.x, self.y)
-            end = (self.x + self.max_sensor_range * math.cos(angle), self.y + self.max_sensor_range * math.sin(angle))
-            self.sensor_lines.append([i, (start, end)])
-            if draw and screen:
-                pygame.draw.line(screen, "black", start, end)
 
-        for i, (start, end) in self.sensor_lines:
+        for i in range(self.num_sensors):
+            angle = self.theta + i * (2 * math.pi / self.num_sensors)
+            start = (self.x, self.y)
+            max_end = (self.x + self.max_sensor_range * math.cos(angle), self.y + self.max_sensor_range * math.sin(angle))
+
+            # find nearest wall intersection
             min_dist = self.max_sensor_range
+            hit_point = None
             for wall in walls:
-                clipped_line = wall.clipline(start, end)
-                if clipped_line:
-                    (cl_start_x, cl_start_y), _ = clipped_line
-                    dist = math.sqrt((cl_start_x - self.x) ** 2 + (cl_start_y - self.y) ** 2) - self.radius
-                    if dist < min_dist and dist < self.sensor_values[i]:
-                        self.sensor_values[i] = dist
+                clipped = wall.clipline(start, max_end)
+                if clipped:
+                    (hx, hy), _ = clipped
+                    d = math.hypot(hx - self.x, hy - self.y) - self.radius
+                    if 0 <= d < min_dist:
+                        min_dist = d
+                        hit_point = (hx, hy)
+
+            self.sensor_values[i] = min_dist
+
+            # choose draw end
+            draw_end = hit_point if hit_point is not None else max_end
+            self.sensor_lines.append((i, start, draw_end))
+            if draw and screen:
+                pygame.draw.line(screen, (0, 0, 0), start, draw_end, 1)
+
         return self.sensor_values
