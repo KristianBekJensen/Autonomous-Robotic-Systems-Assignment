@@ -19,7 +19,8 @@ pygame.init()
 
 default_font = pygame.font.SysFont('Arial', 10)
 
-debug = True
+draw_observed_cells = True
+draw_landmark_line = False
 
 #set up display 
 clock = pygame.time.Clock()
@@ -85,7 +86,7 @@ while running:
     robot.sense(walls, screen=screen, draw=True)
 
     # detect landmarks
-    detected_landmarks = robot.detect_landmarks(landmarks, screen)
+    detected_landmarks = robot.detect_landmarks(landmarks, screen, draw_landmark_line)
     robot.estimate_pose(kf, landmarks, detected_landmarks, screen, position_measurement_noise, theta_mesurement_noise, process_noise)
 
     # React on key inputs from the user and adjust wheel speeds
@@ -109,18 +110,25 @@ while running:
         robot.uncertainty_regions.append((mean, cov))
         last_sample_time = now
     #robot.draw_uncertainty_ellipse(screen)
-    cells = set()
+    free_cells = set()
+    occipied_cells= set()
     grid_size = WALL_THICKNESS
     for i in range(robot.num_sensors):
         sensor_theta = (robot.theta + (2*np.pi/robot.num_sensors*i)) % (2*np.pi)
-        cells.update(
-                line_through_grid(
-                    (robot.x, robot.y), 
-                    (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
-                    grid_size)
-                )
-    if debug:
-        draw_cells(cells, screen, grid_size, grid_size)
+        
+        free_cell, last_cell = line_through_grid(
+            (robot.x, robot.y), 
+            (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
+            grid_size)
+        free_cells.update(free_cell)
+        if robot.sensor_values[i] == robot.max_sensor_range:
+            free_cells.add(last_cell)
+        else:
+            occipied_cells.add(last_cell)
+            
+    if draw_observed_cells:
+        draw_cells(free_cells, screen, grid_size, grid_size)
+        draw_cells(occipied_cells, screen, grid_size, grid_size, "green")
     
     # Shows on display
     pygame.display.flip()

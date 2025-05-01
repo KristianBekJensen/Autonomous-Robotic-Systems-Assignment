@@ -59,4 +59,4 @@ def line_through_grid(start, end, grid_size):
         if cell != cells[-1]:
             cells.append(cell)
     
-    return cells
+    return cells[0:-1], cells[-1]

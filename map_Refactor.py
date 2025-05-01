@@ -103,7 +103,7 @@ def check_y_wall(wall, new_y, y, r):
         new_y = wall.y + wall.height + r
     return new_y
 
-def draw_cells(cells, screen, block_width, block_height):
+def draw_cells(cells, screen, block_width, block_height, color = "red"):
     for cell in cells:
         rect = pygame.Rect(
             cell[1] * block_width,
@@ -111,4 +111,4 @@ def draw_cells(cells, screen, block_width, block_height):
             block_width,
             block_height
         )
-        pygame.draw.rect(screen, (255, 0, 0), rect, 1)  # Draw the cell with a red border
+        pygame.draw.rect(screen, color, rect, 1)  # Draw the cell with a red border

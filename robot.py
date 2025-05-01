@@ -81,14 +81,14 @@ class Robot:
         robot_pose = np.array([self.x, self.y, self.theta])
         self.true_poses.append(robot_pose)
 
-    def detect_landmarks(self, landmarks, screen):
+    def detect_landmarks(self, landmarks, screen, draw):
         detected_landmarks = []
         for landmark in landmarks: 
             i, m_x, m_y = landmark
             distance = math.sqrt((self.x - m_x) ** 2 + (self.y - m_y) ** 2)
 
             if distance < self.max_sensor_range:
-                if debug:
+                if draw:
                     pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (m_x, m_y), 2)
                 detected_landmarks.append(landmark)
 
