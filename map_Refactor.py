@@ -106,8 +106,8 @@ def check_y_wall(wall, new_y, y, r):
 def draw_cells(cells, screen, block_width, color = "red"):
     for cell in cells:
         rect = pygame.Rect(
-            cell[1] * block_width,
             cell[0] * block_width,
+            cell[1] * block_width,
             block_width,
             block_width
         )
@@ -116,8 +116,8 @@ def draw_cells(cells, screen, block_width, color = "red"):
 def draw_cells_filled(cells, screen, block_width, color = "red"):
     for cell in cells:
         rect = pygame.Rect(
-            cell[1] * block_width,
             cell[0] * block_width,
+            cell[1] * block_width,
             block_width,
             block_width
         )

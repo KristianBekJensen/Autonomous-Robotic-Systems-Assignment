@@ -16,8 +16,8 @@ def line_through_grid(start, end, grid_size):
     def world_to_grid(point):
         x, y = point
         # Integer division to get grid indices
-        i = int(y / grid_size)
-        j = int(x / grid_size)
+        i = int(x / grid_size)
+        j = int(y / grid_size)
         return i, j
     
     # Extract coordinates
@@ -63,7 +63,7 @@ def line_through_grid(start, end, grid_size):
     
     return cells[0:-1], cells[-1]
 
-def get_observed_cells(robot, grid_size, world_width, world_height):
+def get_observed_cells(robot, grid_size, number_x_grids, number_y_grids):
     free_cells = set()
     occipied_cells= set()
     for i in range(robot.num_sensors):
@@ -74,9 +74,9 @@ def get_observed_cells(robot, grid_size, world_width, world_height):
             (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
             grid_size)
         for cell in free_cell:
-            if cell[0] < world_width and  cell[1] < world_height:
+            if cell[0] < number_x_grids and  cell[1] < number_y_grids:
                 free_cells.add(cell)
-        if last_cell[0] < world_width and  last_cell[1] < world_height:
+        if last_cell[0] < number_x_grids and  last_cell[1] < number_y_grids:
             if robot.sensor_values[i] == robot.max_sensor_range:
                 free_cells.add(last_cell)
             else:
