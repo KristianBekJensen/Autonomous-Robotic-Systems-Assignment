@@ -1,26 +1,24 @@
 import math
 import numpy as np
-def line_through_grid(start, end, grid_size):
-    """
-    Determines all grid cells that a line from start to end passes through.
+def line_through_grid(start, end, grid_size, number_x_grids, number_y_grids):
     
-    Parameters:
-    - start: (x, y) starting point coordinates
-    - end: (x, y) ending point coordinates
-    - grid_size: Size of each grid cell
+    #Determine all grid cells that a line from start to end passes through.
     
-    Returns:
-    - List of (i, j) grid cell indices the line passes through
-    """
-    # Convert world coordinates to grid indices
+    # Convert world coordinates to grid indices 
     def world_to_grid(point):
         x, y = point
-        # Integer division to get grid indices
+
+        # Get grid indices
         i = int(x / grid_size)
         j = int(y / grid_size)
+        
+        # Ensure indices are within grid bounds
+        i = max(0, min(i, number_x_grids - 1))
+        j = max(0, min(j, number_y_grids - 1))
+        
         return i, j
     
-    # Extract coordinates
+    # Start and end coordinates
     x0, y0 = start
     x1, y1 = end
     
@@ -31,17 +29,17 @@ def line_through_grid(start, end, grid_size):
     # Initialize result list with starting cell
     cells = [start_cell]
     
-    # Calculate line direction and length
+    # Line direction and length
     dx = x1 - x0
     dy = y1 - y0
     
-    # Line length (using Manhattan distance for grid traversal)
+    # Line length (Manhattan distance for grid)
     steps = max(abs(dx), abs(dy))
     
     if steps == 0:  # Start and end are in the same cell
-        return cells
+        return cells[:-1], cells[-1] if cells else ([], start_cell)
     
-    # Calculate step increments
+    # Step increments
     x_inc = dx / steps
     y_inc = dy / steps
     
@@ -61,24 +59,58 @@ def line_through_grid(start, end, grid_size):
         if cell != cells[-1]:
             cells.append(cell)
     
-    return cells[0:-1], cells[-1]
+    # Return all cells except the last one, and the last cell separately
+    return cells[0:-1], cells[-1] if cells else ([], start_cell)
 
 def get_observed_cells(robot, grid_size, number_x_grids, number_y_grids):
+    """
+    Determines which grid cells are observed as free or occupied based on sensor data.
+    
+    Parameters:
+    - robot: The robot object containing position and sensor information
+    - grid_size: Size of each grid cell
+    - grid_width: Number of grid cells in x-direction
+    - grid_height: Number of grid cells in y-direction
+    
+    Returns:
+    - Two sets: free cells and occupied cells
+    """
+    
     free_cells = set()
-    occipied_cells= set()
+    occupied_cells = set()
+    
     for i in range(robot.num_sensors):
         sensor_theta = (robot.theta + (2*np.pi/robot.num_sensors*i)) % (2*np.pi)
         
+        end_point = (
+            robot.x + (robot.sensor_values[i] + robot.radius) * math.cos(sensor_theta),
+            robot.y + (robot.sensor_values[i] + robot.radius) * math.sin(sensor_theta)
+        )
+        
         free_cell, last_cell = line_through_grid(
-            (robot.x, robot.y), 
-            (robot.x + (robot.sensor_values[i]+ robot.radius) * math.cos(sensor_theta), robot.y + (robot.sensor_values[i]+ robot.radius) * math.sin(sensor_theta)),
-            grid_size)
+            (robot.x, robot.y),
+            end_point,
+            grid_size,
+            number_x_grids,
+            number_y_grids
+        )
+        
+        # Add free cells
         for cell in free_cell:
-            if cell[0] < number_x_grids and  cell[1] < number_y_grids:
-                free_cells.add(cell)
-        if last_cell[0] < number_x_grids and  last_cell[1] < number_y_grids:
-            if robot.sensor_values[i] == robot.max_sensor_range:
-                free_cells.add(last_cell)
-            else:
-                occipied_cells.add(last_cell)
-    return free_cells, occipied_cells
+            free_cells.add(cell)
+            
+        # Add last cell as either free or occupied
+        if robot.sensor_values[i] == robot.max_sensor_range:
+            free_cells.add(last_cell)
+        else:
+            occupied_cells.add(last_cell)
+    
+    return free_cells, occupied_cells
+
+def log_odds_to_prob(log_odds):
+    return 1 - (1 / (1 + np.exp(log_odds)))
+
+def probs_to_grey_scale(prob):
+    return (prob * 255).astype(np.uint8)
+
+1 - (1/ (1 + 1))
