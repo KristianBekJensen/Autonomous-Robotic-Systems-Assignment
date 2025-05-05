@@ -73,6 +73,8 @@ grid = np.zeros((
     int(SCREEN_W  / GRID_SIZE),
     int(SCREEN_H  / GRID_SIZE)
 ))
+sensor_noise = 10
+
 
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 
@@ -133,7 +135,8 @@ while running:
          pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
 
     robot.draw_Robot(screen)
-    robot.sense(walls, screen, draw_sensors)
+
+    robot.sense(walls, screen, draw_sensors, sensor_noise)
 
     # detect landmarks
     detected_landmarks = robot.detect_landmarks(landmarks, screen, draw_landmark_line)

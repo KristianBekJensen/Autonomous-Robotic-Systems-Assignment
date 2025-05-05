@@ -236,7 +236,7 @@ class Robot:
                 width=2
             )
     
-    def sense(self, walls, screen=None, draw=False):
+    def sense(self, walls, screen=None, draw=False, sensor_noise=0):
         self.sensor_values = np.full(self.num_sensors, self.max_sensor_range, dtype=float)
         self.sensor_lines = []
 
@@ -257,7 +257,7 @@ class Robot:
                         min_dist = d
                         hit_point = (hx, hy)
 
-            self.sensor_values[i] = min_dist
+            self.sensor_values[i] = min_dist + np.random.normal(0, sensor_noise)
 
             # choose draw end
             draw_end = hit_point if hit_point is not None else max_end
