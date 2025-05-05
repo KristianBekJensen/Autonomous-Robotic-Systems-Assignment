@@ -1,6 +1,8 @@
 import math
+from matplotlib.pyplot import grid
 import numpy as np
 import robot
+
 def line_through_grid(start, end, grid_size, number_x_grids, number_y_grids):
     
     #Determine all grid cells that a line from start to end passes through.
@@ -112,3 +114,37 @@ def log_odds_to_prob(log_odds):
 
 def probs_to_grey_scale(prob):
     return (prob * 255).astype(np.uint8)
+
+def calculate_mapping_accuracy(estimated_grid, walls, obstacles, screen_width, screen_height, grid_size):
+    """
+    Placeholder function to calculate mapping accuracy.
+    Replace this with the actual implementation.
+    """
+    pass
+    grid_real = np.zeros((int(screen_width  / grid_size),int(screen_height  / grid_size)))
+    for wall in walls:
+        (left, top, width, height) = wall
+        for i in range(int(left/grid_size), int((left+width)/grid_size)):
+            for j in range(int(top/grid_size), int((top+height)/grid_size)):
+                grid_real[i][j] = 1
+    for obstacle in obstacles:
+        (left, top, width, height) = obstacle
+        for i in range(int(left/grid_size), int((left+width)/grid_size)):
+            for j in range(int(top/grid_size), int((top+height)/grid_size)):
+                grid_real[i][j] = 1
+    
+    average_error = 0
+
+    for i in range(len(estimated_grid)):
+        for j in range(len(estimated_grid[i])):
+            error = abs(grid_real[i][j] - estimated_grid[i][j])
+            average_error += error
+    average_error /= (len(estimated_grid) * len(estimated_grid[0]))
+    return average_error
+
+
+
+
+    
+
+

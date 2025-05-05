@@ -5,7 +5,7 @@ import numpy as np
 import itertools
 from collections import deque
 from kinematics import differential_drive_kinematics
-from mapping import get_observed_cells, line_through_grid, log_odds_to_prob, probs_to_grey_scale
+from mapping import calculate_mapping_accuracy, get_observed_cells, line_through_grid, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
 import sensors as sn
 from kalman_filter import KalmanFilter
@@ -133,6 +133,7 @@ obstacles = draw_random_obstacles(
     obstacle_color = (0,0,0)
 )
 
+
 pygame.display.flip()
 
 # Game Loop 
@@ -218,6 +219,7 @@ while running:
                 draw_cells_filled([(i, j)], main_surface, GRID_SIZE, "purple")
 
     grid_probability = log_odds_to_prob(grid)
+    #print(f"Mapping accurarcy: {calculate_mapping_accuracy(grid_probability, walls, obstacles, SCREEN_W, SCREEN_H, GRID_SIZE)}")
     grid_probability = probs_to_grey_scale(grid_probability)
 
     if visualize_mapping:
