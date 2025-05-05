@@ -132,8 +132,10 @@ def draw_map(screen, num_blocks_w, num_blocks_h,
     while len(obstacle_list) < n_obstacles and attempts < n_obstacles*10:
         attempts += 1
         area = random.choice(free_areas)
-        w = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
-        h = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
+        w = 2 * wall_thickness
+        h = 2 * wall_thickness
+        # w = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
+        # h = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
         ox = random.uniform(area.x, area.x + area.width  - w)
         oy = random.uniform(area.y, area.y + area.height - h)
         orect = pygame.Rect(int(ox), int(oy), int(w), int(h))
