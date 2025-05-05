@@ -112,5 +112,3 @@ def log_odds_to_prob(log_odds):
 
 def probs_to_grey_scale(prob):
     return (prob * 255).astype(np.uint8)
-
-1 - (1/ (1 + 1))
