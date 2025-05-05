@@ -72,8 +72,7 @@ grid = np.zeros((
     int(SCREEN_W  / GRID_SIZE),
     int(SCREEN_H  / GRID_SIZE)
 ))
-sensor_noise = 10
-
+sensor_noise = 0
 
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
 
@@ -104,6 +103,42 @@ for r in range(BLOCK_H):
     vert[r][0] = 1              # left edge of map
     vert[r][BLOCK_W] = 1         # right edge of map
 
+# 1) draw all your walls once
+walls = draw_map(
+    screen,
+    horiz, vert,
+    pad=PAD,
+    grid_w=BLOCK_W, grid_h=BLOCK_H,
+    wall_color=(0,0,0),
+    wall_thickness=WALL_THICKNESS
+)
+
+# 2) compute your landmarks once
+landmarks = compute_landmarks(
+    horiz, vert,
+    screen,
+    pad=PAD,
+    grid_w=BLOCK_W, grid_h=BLOCK_H
+)
+
+# 3) scatter N obstacles into the free cells
+obstacles = draw_random_obstacles(
+    screen,
+    wall_list      = walls,
+    horiz          = horiz,
+    vert           = vert,
+    pad            = PAD,
+    grid_w         = BLOCK_W,
+    grid_h         = BLOCK_H,
+    wall_thickness = WALL_THICKNESS,
+    n_obstacles    = 20,
+    obstacle_mu    = 7.5,
+    obstacle_sigma = 1.5,
+    obstacle_color = (0,0,0)
+)
+
+pygame.display.flip()
+
 # Game Loop 
 running = True
 while running:
@@ -130,12 +165,19 @@ while running:
         pad=PAD,
         grid_w=BLOCK_W, grid_h=BLOCK_H
     )
+        
+    # 4) re-draw the static map each frame
+    for w in walls:
+        pygame.draw.rect(screen, (0,0,0), w)
+    for o in obstacles:
+        pygame.draw.rect(screen, (0,0,0), o)
     for (i, m_x, m_y) in landmarks:
-         pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
+        pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
 
     robot.draw_Robot(screen)
 
-    robot.sense(walls, screen, draw_sensors, sensor_noise)
+    environment_objects = walls + obstacles
+    robot.sense(environment_objects, screen, draw_sensors, sensor_noise)
 
     # detect landmarks
     detected_landmarks = robot.detect_landmarks(landmarks, screen, draw_landmark_line)
@@ -148,7 +190,7 @@ while running:
     robot.v_right = v_right
 
     # Move the robot and execute collision handling
-    robot.move(walls)
+    robot.move(environment_objects)
 
     # Draw the robot's trajectory
     if draw_estimated_path:
