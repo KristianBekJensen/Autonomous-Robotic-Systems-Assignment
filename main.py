@@ -139,6 +139,19 @@ while running:
         if event.type == pygame.QUIT:
             running = False
     
+    #Key mappings for debugging
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_1]:
+        draw_observed_cells = not draw_observed_cells
+    elif keys[pygame.K_2]:
+        draw_landmark_line = not draw_landmark_line
+    elif keys[pygame.K_3]:
+        draw_sigma = not draw_sigma
+    elif keys[pygame.K_4]:
+        draw_estimated_path = not draw_estimated_path
+    elif keys[pygame.K_5]:
+        draw_sensors = not draw_sensors
+    
     # reset screen
     main_surface.fill((255,255,255))
     if visualize_mapping:
@@ -162,7 +175,6 @@ while running:
     robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
     # React on key inputs from the user and adjust wheel speeds
-    keys = pygame.key.get_pressed()
     v_left, v_right = navigate(keys, robot.v_left, robot.v_right)
     robot.v_left = v_left
     robot.v_right = v_right
