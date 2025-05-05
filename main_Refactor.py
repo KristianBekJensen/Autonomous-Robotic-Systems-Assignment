@@ -13,6 +13,7 @@ from landmark import *
 from utils import draw_covariance_ellipse, draw_dashed_lines
 from map_Refactor import *
 from robot import Robot
+import random
 
 # pygame setup
 pygame.init()
@@ -53,25 +54,54 @@ SAMPLE_INTERVAL = 2000
 last_sample_time = pygame.time.get_ticks()
 
 
-kf = KalmanFilter(initial_pose, initial_covariance, R, Q)
+kf = KalmanFilter(initial_pose, initial_covariance, R, Q)  
 
-
-# Map and Screen Setup
-N_X = 20
-N_Y = 10
-BLOCK_WIDTH = 80
-BLOCK_HEIGHT = BLOCK_WIDTH
+# map resolution for occupancy grid
+PAD = 20
+BLOCK_W, BLOCK_H = 16, 9
+BLOCK_SIZE = 100
+SCREEN_W, SCREEN_H = BLOCK_W * BLOCK_SIZE, BLOCK_H * BLOCK_SIZE
 WALL_THICKNESS = 4
-MAP_WIDTH = N_X * BLOCK_WIDTH
-MAP_HEIGHT = N_Y * BLOCK_HEIGHT
-
-# Mapping Setup
 GRID_SIZE = WALL_THICKNESS
-grid = np.zeros((int(MAP_WIDTH/GRID_SIZE), int(MAP_HEIGHT/GRID_SIZE)))     
 
-screen = pygame.display.set_mode((MAP_WIDTH, MAP_HEIGHT))
-blocks = generate_sample_map(N_X, N_Y)
-walls, landmarks = draw_map(screen, blocks, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
+# the drawable map area (inside the padding)
+MAP_W = SCREEN_W - 2 * PAD
+MAP_H = SCREEN_H - 2 * PAD
+
+# occupancy grid: cols = MAP_W/GRID_SIZE, rows = MAP_H/GRID_SIZE
+grid = np.zeros((
+    int(MAP_W  / GRID_SIZE),
+    int(MAP_H  / GRID_SIZE)
+))
+
+screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
+
+# near the top of your file, pick a wall probability
+WALL_H_PROB = 0.2
+WALL_V_PROB = 0.2
+
+# then when you initialize:
+horiz = [
+    [1 if random.random() < WALL_H_PROB else 0
+     for _ in range(BLOCK_W)]
+    for _ in range(BLOCK_H+1)
+]
+vert = [
+    [1 if random.random() < WALL_V_PROB else 0
+     for _ in range(BLOCK_W+1)]
+    for _ in range(BLOCK_H)
+]
+
+# force all outer borders ON
+# top and bottom horizontal walls:
+for c in range(BLOCK_W):
+    horiz[0][c] = 1             # top edge of map
+    horiz[BLOCK_H][c] = 1        # bottom edge of map
+
+# left and right vertical walls:
+for r in range(BLOCK_H):
+    vert[r][0] = 1              # left edge of map
+    vert[r][BLOCK_W] = 1         # right edge of map
 
 # Game Loop 
 running = True
@@ -85,9 +115,22 @@ while running:
     # reset screen
     screen.fill((255,255,255))
 
-    draw_map(screen, blocks, wall_thickness=WALL_THICKNESS, block_width=BLOCK_WIDTH, block_height=BLOCK_HEIGHT)
-    for (i,m_x,m_y) in landmarks:
-        pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
+    walls = draw_map(
+        screen,
+        horiz, vert,
+        pad=PAD,
+        grid_w=BLOCK_W, grid_h=BLOCK_H,
+        wall_color=(0,0,0),
+        wall_thickness=4
+    )
+    landmarks = compute_landmarks(
+        horiz, vert,
+        screen,
+        pad=PAD,
+        grid_w=BLOCK_W, grid_h=BLOCK_H
+    )
+    for (i, m_x, m_y) in landmarks:
+         pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
 
     robot.draw_Robot(screen)
     robot.sense(walls, screen, draw_sensors)
@@ -120,7 +163,7 @@ while running:
     if draw_sigma:
         robot.draw_uncertainty_ellipse(screen)
     
-    free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, int(MAP_WIDTH/GRID_SIZE), int(MAP_HEIGHT/GRID_SIZE))
+    free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, grid.shape[0], grid.shape[1])
     
     if draw_observed_cells:
         draw_cells(free_cells, screen, GRID_SIZE)

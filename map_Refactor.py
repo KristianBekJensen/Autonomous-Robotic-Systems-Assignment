@@ -1,93 +1,88 @@
 import pygame
-import random
 
-# Colors
-BACKGROUND_COLOR = (255, 255, 255)
-WALL_COLOR = (0, 0, 0)
-LANDMARK_COLOR = (0, 0, 255)
+def draw_map(
+    screen,
+    horiz,
+    vert,
+    pad=20,
+    grid_w=16,
+    grid_h=9,
+    wall_color=(0, 0, 0),
+    wall_thickness=1
+):
+    screen_w, screen_h = screen.get_size()
+    map_w = screen_w  - 2 * pad
+    map_h = screen_h - 2 * pad
+    cell_w = map_w / grid_w
+    cell_h = map_h / grid_h
 
-# Each block contains a [top, right, bottom, left] wall flag
-def generate_sample_map(n_x, n_y):
-    grid = []
-    for y in range(n_y):
-        row = []
-        for x in range(n_x):
-            # 20% chance for each wall to be True (i.e., present)
-            walls = [random.random() < 0.2 for _ in range(4)]
-            row.append(walls)
-        grid.append(row)
-    return grid
-
-def draw_map(screen, grid, wall_thickness, block_width, block_height):
     wall_list = []
-    landmark_list = []
-    landmark_id = 0
-    for y, row in enumerate(grid):
-        for x, walls in enumerate(row):
-            px = x * block_width
-            py = y * block_height
-            
-            if walls[0]:  # Top wall
+
+    # Horizontal walls
+    for r in range(grid_h + 1):
+        y = pad + r * cell_h
+        for c, present in enumerate(horiz[r]):
+            if present:
+                x = pad + c * cell_w
                 rect = pygame.Rect(
-                    px, py,
-                    block_width , wall_thickness
+                    int(x), int(y),
+                    int(cell_w), wall_thickness
                 )
-                pygame.draw.rect(screen, WALL_COLOR, rect)
+                pygame.draw.rect(screen, wall_color, rect)
                 wall_list.append(rect)
 
-            if walls[1]:  # Right wall
+    # Vertical walls
+    for r in range(grid_h):
+        y = pad + r * cell_h
+        for c, present in enumerate(vert[r]):
+            if present:
+                x = pad + c * cell_w
                 rect = pygame.Rect(
-                    px + block_width - wall_thickness, py,
-                    wall_thickness, block_height
+                    int(x), int(y),
+                    wall_thickness, int(cell_h)
                 )
-                pygame.draw.rect(screen, WALL_COLOR, rect)
+                pygame.draw.rect(screen, wall_color, rect)
                 wall_list.append(rect)
 
-
-            if walls[2]:  # Bottom wall
-                rect = pygame.Rect(
-                    px, py + block_height - wall_thickness,
-                    block_width, wall_thickness
-                )
-                pygame.draw.rect(screen, WALL_COLOR, rect)
-                wall_list.append(rect)
+    return wall_list
 
 
-            if walls[3]:  # Left wall
-                rect = pygame.Rect(
-                    px, py,
-                    wall_thickness, block_height
-                )
-                pygame.draw.rect(screen, WALL_COLOR, rect)
-                wall_list.append(rect)
+def compute_landmarks(
+    horiz,
+    vert,
+    screen,
+    pad=20,
+    grid_w=16,
+    grid_h=9
+):
+    screen_w, screen_h = screen.get_size()
+    map_w = screen_w  - 2 * pad
+    map_h = screen_h - 2 * pad
+    cell_w = map_w / grid_w
+    cell_h = map_h / grid_h
 
-            # Check for landmarks
+    landmarks = []
+    lid = 0
 
-            # Top-Right Corner
-            if walls[0] and walls[1]:
-                landmark = (landmark_id, px + block_width, py)
-                landmark_list.append(landmark)
-                landmark_id += 1
+    for r in range(grid_h + 1):
+        for c in range(grid_w + 1):
+            # only access horiz[r-1][c] when c < grid_w
+            above = (r > 0       and c < grid_w and horiz[r-1][c] == 1)
+            # only access horiz[r][c]   when c < grid_w
+            below = (r < grid_h and c < grid_w and horiz[r][c]   == 1)
+            # only access vert[r][c-1]  when r < grid_h
+            left  = (c > 0       and r < grid_h and vert[r][c-1] == 1)
+            # only access vert[r][c]    when r < grid_h and c < len(vert[r])
+            right = (r < grid_h and c < len(vert[r]) and vert[r][c]   == 1)
 
-            # Bottom-Right Corner
-            if walls[1] and walls[2]:
-                landmark = (landmark_id, px + block_width, py + block_height)
-                landmark_list.append(landmark)
-                landmark_id += 1
+            # if any orthogonal pair is present, mark a corner
+            if (above and left) or (above and right) or (below and left) or (below and right):
+                px = pad + c * cell_w
+                py = pad + r * cell_h
+                landmarks.append((lid, int(px), int(py)))
+                lid += 1
 
-            # Bottom-Left Corner
-            if walls[2] and walls[3]:
-                landmark = (landmark_id, px, py + block_height)
-                landmark_list.append(landmark)
-                landmark_id += 1
-
-            # Top-Left Corner
-            if walls[3] and walls[0]:
-                landmark = (landmark_id, px, py)
-                landmark_list.append(landmark)
-                landmark_id += 1        
-    
-    return wall_list, landmark_list
+    return landmarks
 
 def check_x_wall(wall, new_x, x, r):
     if x <= wall.x: # Robot left
