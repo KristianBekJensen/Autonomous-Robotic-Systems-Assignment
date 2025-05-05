@@ -4,7 +4,6 @@ import pygame
 import math
 import itertools
 from kinematics import differential_drive_kinematics
-from map_Refactor import check_x_wall, check_y_wall 
 from landmark import two_point_triangulate, get_landmark_measurements
 from sensors import detect_walls
 from utils import draw_covariance_ellipse
@@ -47,6 +46,7 @@ class Robot:
         self.uncertainty_regions = []
         
     def move(self, walls):
+        
         state_change = differential_drive_kinematics(
             [self.x, self.y, self.theta], 
             self.v_left, 
@@ -58,29 +58,73 @@ class Robot:
         new_y = self.y + state_change[1]
         new_theta = (self.theta + state_change[2]) % (2 * math.pi)
 
-        # add collision detection here
-        new_robot_rect = pygame.Rect(new_x - self.radius, new_y - self.radius, 2 * self.radius, 2 * self.radius) 
-        colliding_walls = []
-        for wall in walls:
-            if wall.colliderect(new_robot_rect):
-                colliding_walls.append(wall)
-
-        if len(colliding_walls) != 0:
-            if len(colliding_walls) == 1:
-                new_x = check_x_wall(colliding_walls[0], new_x, self.x, self.radius)
-                new_y = check_y_wall(colliding_walls[0], new_y, self.y, self.radius)
-            else:
-                for wall in colliding_walls:
-                    if wall.width > wall.height:
-                            new_y = check_y_wall(wall, new_y, self.y, self.radius)
-                    else:
-                            new_x = check_x_wall(wall, new_x, self.x, self.radius)
-
-        # Update state variables
+        new_x, new_y = self.check_collisions(new_x, new_y, walls)
+        
+        # Update state variables after collision handling
         self.x, self.y, self.theta = new_x, new_y, new_theta
         robot_pose = np.array([self.x, self.y, self.theta])
         self.true_poses.append(robot_pose)
 
+    def check_collisions(self, new_x, new_y, walls):
+        """Check and resolve collisions with multiple walls"""
+        # First, try the move
+        test_x, test_y = new_x, new_y
+        
+        # Check each wall for collision
+        collided_walls = []
+        for wall in walls:
+            # Calculate closest point on rectangle to circle center
+            closest_x = max(wall.x, min(test_x, wall.x + wall.width))
+            closest_y = max(wall.y, min(test_y, wall.y + wall.height))
+            
+            # Calculate distance between closest point and circle center
+            distance_x = test_x - closest_x
+            distance_y = test_y - closest_y
+            distance = math.sqrt(distance_x**2 + distance_y**2)
+            
+            # Check if colliding
+            if distance < self.radius:
+                collided_walls.append((wall, closest_x, closest_y, distance))
+
+            # If no collisions, accept the move
+        if not collided_walls:
+            return test_x, test_y
+        
+        # Handle collisions
+        adjusted_x, adjusted_y = self.resolve_collisions(test_x, test_y, collided_walls)
+        return adjusted_x, adjusted_y
+    
+    def resolve_collisions(self, test_x, test_y, collided_walls):
+        """Resolve collisions with potentially multiple walls"""
+        # Start with the attempted position
+        adjusted_x, adjusted_y = test_x, test_y
+        
+        for wall, closest_x, closest_y, distance in collided_walls:
+            # Calculate normal vector from closest point to circle center
+            if distance > 0:  # Avoid division by zero
+                normal_x = (test_x - closest_x) / distance
+                normal_y = (test_y - closest_y) / distance
+            else:
+                # If center is exactly on edge, use direction from previous position
+                dx = test_x - self.x
+                dy = test_y - self.y
+                mag = math.sqrt(dx**2 + dy**2)
+                if mag > 0:
+                    normal_x = dx / mag
+                    normal_y = dy / mag
+                else:
+                    # Default push direction if no movement
+                    normal_x, normal_y = 0, -1
+            
+            # Calculate how much we need to push the circle out
+            push_distance = self.radius - distance
+            if push_distance > 0:
+                # Push the circle out along the normal vector
+                adjusted_x += normal_x * push_distance
+                adjusted_y += normal_y * push_distance
+        
+        return adjusted_x, adjusted_y
+  
     def detect_landmarks(self, landmarks, screen, draw):
         detected_landmarks = []
         for landmark in landmarks: 

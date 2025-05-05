@@ -84,19 +84,6 @@ def compute_landmarks(
 
     return landmarks
 
-def check_x_wall(wall, new_x, x, r):
-    if x <= wall.x: # Robot left
-        new_x = wall.x - r
-    elif x >= wall.x + wall.width: # Robot right
-        new_x = wall.x + wall.width + r
-    return new_x
-
-def check_y_wall(wall, new_y, y, r):
-    if y <= wall.y: # Robot above
-        new_y = wall.y - r
-    elif y >= wall.y + wall.height: # Robot below
-        new_y = wall.y + wall.height + r
-    return new_y
 
 def draw_cells(cells, screen, block_width, color = "red"):
     for cell in cells:
