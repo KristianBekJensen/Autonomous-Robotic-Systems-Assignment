@@ -115,13 +115,10 @@ def draw_map(screen, num_blocks_w, num_blocks_h,
                 l_id += 1
 
 
-    # collect all cell‐interiors that have no walls on any of their 4 borders
+    ## OBSTACLES scattered in the map
     free_areas = []
     for r in range(num_blocks_h):
         for c in range(num_blocks_w):
-            if (horiz[r][c] or horiz[r+1][c] or
-                vert[r][c] or vert[r][c+1]):
-                continue
             interior = pygame.Rect(
                 int(pad + c*cell_w + wall_thickness),
                 int(pad + r*cell_h + wall_thickness),
@@ -130,7 +127,6 @@ def draw_map(screen, num_blocks_w, num_blocks_h,
             )
             free_areas.append(interior)
 
-    ## OBSTACLES scattered in the map
     obstacle_list = []
     attempts = 0
     while len(obstacle_list) < n_obstacles and attempts < n_obstacles*10:

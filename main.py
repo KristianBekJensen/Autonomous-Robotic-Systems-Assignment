@@ -10,7 +10,7 @@ from navigate import navigate
 from kalman_filter import KalmanFilter
 from landmark import *
 from utils import draw_covariance_ellipse, draw_dashed_lines
-from map import *
+from maps import *
 from robot import Robot
 import random
 
@@ -89,7 +89,7 @@ walls, landmarks, obstacles = draw_map(
     wall_v_prob=0.2,
     wall_thickness=WALL_THICKNESS,
     p_landmark=0.25,
-    n_obstacles=30,
+    n_obstacles=50,
     obstacle_mu=7.5,
     obstacle_sigma=1.5,
     obstacle_color=(0,0,0)
