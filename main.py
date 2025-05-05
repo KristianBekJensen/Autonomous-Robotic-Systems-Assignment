@@ -39,15 +39,15 @@ v_right = 0
 r = 20 # robot radius
 initial_pose = np.array([x, y, theta])
 axel_length = 15 # distance between wheels
-max_sensor_range = 500 # max sensor range
+max_sensor_range = 200 # max sensor range
 num_sensors = 96
 
 robot = Robot(x,y,theta,r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
 
 # Setup Kalman Filter
 process_noise = 0.1
-position_measurement_noise = 1
-theta_mesurement_noise = 0.5
+position_measurement_noise = 0.1
+theta_mesurement_noise = 0.05
 R = np.diag([2, 2, 0.2**2])  # Process noise
 Q = np.diag([2, 2, 0.2**2])  # Measurement noise
 initial_covariance = np.diag([0.1, 0.1, 0.1])  # For local localization
@@ -205,9 +205,7 @@ while running:
     # Move the robot and execute collision handling
     robot.move(environment_objects)
 
-    # Draw the robot's trajectory
-    if draw_estimated_path:
-        robot.drawTrajectories(main_surface)
+
 
     # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
     now = pygame.time.get_ticks()
@@ -246,6 +244,13 @@ while running:
             for j in range(len(grid_probability[i])):
                 color = grid_probability[i][j]
                 pygame.draw.rect(second_surface, (color,color,color), (i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE))
+
+    # Draw the robot's trajectory
+    if draw_estimated_path:
+        if visualize_mapping:
+            robot.drawTrajectories(second_surface)
+        else:
+            robot.drawTrajectories(main_surface)
 
     # Shows on display
     pygame.display.flip()
