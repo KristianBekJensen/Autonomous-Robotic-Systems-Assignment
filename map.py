@@ -1,18 +1,9 @@
 import pygame
 import random
 
-def draw_map(
-    screen,
-    horiz,
-    vert,
-    pad=20,
-    grid_w=16,
-    grid_h=9,
-    wall_color=(0, 0, 0),
-    wall_thickness=1
-):
+def draw_map(screen, horiz, vert, pad=20, grid_w=16, grid_h=9, wall_color=(0, 0, 0), wall_thickness=1):
     screen_w, screen_h = screen.get_size()
-    map_w = screen_w  - 2 * pad
+    map_w = screen_w - 2 * pad
     map_h = screen_h - 2 * pad
     cell_w = map_w / grid_w
     cell_h = map_h / grid_h
@@ -25,10 +16,7 @@ def draw_map(
         for c, present in enumerate(horiz[r]):
             if present:
                 x = pad + c * cell_w
-                rect = pygame.Rect(
-                    int(x), int(y),
-                    int(cell_w), wall_thickness
-                )
+                rect = pygame.Rect(int(x), int(y), int(cell_w), wall_thickness)
                 pygame.draw.rect(screen, wall_color, rect)
                 wall_list.append(rect)
 
@@ -38,52 +26,61 @@ def draw_map(
         for c, present in enumerate(vert[r]):
             if present:
                 x = pad + c * cell_w
-                rect = pygame.Rect(
-                    int(x), int(y),
-                    wall_thickness, int(cell_h)
-                )
+                rect = pygame.Rect(int(x), int(y), wall_thickness, int(cell_h))
                 pygame.draw.rect(screen, wall_color, rect)
                 wall_list.append(rect)
 
     return wall_list
 
-
-def compute_landmarks(
-    horiz,
-    vert,
-    screen,
-    pad=20,
-    grid_w=16,
-    grid_h=9
-):
-    screen_w, screen_h = screen.get_size()
-    map_w = screen_w  - 2 * pad
-    map_h = screen_h - 2 * pad
+def compute_landmarks(horiz, vert, screen, pad=20, grid_w=16, grid_h=9, p_landmark=0.25):
+    sw, sh = screen.get_size()
+    map_w = sw - 2*pad
+    map_h = sh - 2*pad
     cell_w = map_w / grid_w
     cell_h = map_h / grid_h
 
     landmarks = []
-    lid = 0
+    l_id = 0
 
+    # Horizontal segments: r in [0..grid_h], c in [0..grid_w-1]
     for r in range(grid_h + 1):
-        for c in range(grid_w + 1):
-            # only access horiz[r-1][c] when c < grid_w
-            above = (r > 0       and c < grid_w and horiz[r-1][c] == 1)
-            # only access horiz[r][c]   when c < grid_w
-            below = (r < grid_h and c < grid_w and horiz[r][c]   == 1)
-            # only access vert[r][c-1]  when r < grid_h
-            left  = (c > 0       and r < grid_h and vert[r][c-1] == 1)
-            # only access vert[r][c]    when r < grid_h and c < len(vert[r])
-            right = (r < grid_h and c < len(vert[r]) and vert[r][c]   == 1)
+        y = pad + r * cell_h
+        for c, present in enumerate(horiz[r]):
+            if not present:
+                continue
 
-            # if any orthogonal pair is present, mark a corner
-            if (above and left) or (above and right) or (below and left) or (below and right):
-                px = pad + c * cell_w
-                py = pad + r * cell_h
-                landmarks.append((lid, int(px), int(py)))
-                lid += 1
+            # endpoints in cell‐coords: (c, r) and (c+1, r)
+            x1, y1 = pad + c * cell_w, y
+            x2, y2 = pad + (c+1) * cell_w, y
+
+            if random.random() < p_landmark:
+                landmarks.append((l_id, int(x1), int(y1)))
+                l_id += 1
+            if random.random() < p_landmark:
+                landmarks.append((l_id, int(x2), int(y2)))
+                l_id += 1
+
+    # Vertical segments: r in [0..grid_h-1], c in [0..grid_w]
+    for r in range(grid_h):
+        x = pad + c * cell_w
+        for c, present in enumerate(vert[r]):
+            if not present:
+                continue
+
+            # endpoints: (c, r) and (c, r+1)
+            x = pad + c * cell_w
+            y1 = pad + r * cell_h
+            y2 = pad + (r+1) * cell_h
+
+            if random.random() < p_landmark:
+                landmarks.append((l_id, int(x), int(y1)))
+                l_id += 1
+            if random.random() < p_landmark:
+                landmarks.append((l_id, int(x), int(y2)))
+                l_id += 1
 
     return landmarks
+
     
 def clamp(value, minimum, maximum):
     return max(minimum, min(value, maximum))
@@ -102,36 +99,28 @@ def draw_random_obstacles(
     obstacle_sigma=1.5,
     obstacle_color=(0,0,0)
 ):
-    """
-    - screen: your pygame surface
-    - wall_list: list of pygame.Rect returned by draw_map()
-    - horiz:      (grid_h+1)×grid_w matrix of horizontal walls
-    - vert:       grid_h×(grid_w+1)  matrix of vertical   walls
-    - pad, grid_w, grid_h, wall_thickness: same as draw_map()
-    - n_obstacles, obstacle_mu/sigma: Gaussian obstacle sizes
-    """
     sw, sh = screen.get_size()
-    map_w = sw  - 2*pad
-    map_h = sh  - 2*pad
+    map_w = sw - 2*pad
+    map_h = sh - 2*pad
     cell_w = map_w / grid_w
     cell_h = map_h / grid_h
 
-    # 1) collect all cell‐interiors that have NO walls on any of their 4 borders
+    # collect all cell‐interiors that have no walls on any of their 4 borders
     free_areas = []
     for r in range(grid_h):
         for c in range(grid_w):
-            if (horiz[r][c]   or horiz[r+1][c] or
-                vert[r][c]    or vert[r][c+1]):
+            if (horiz[r][c] or horiz[r+1][c] or
+                vert[r][c] or vert[r][c+1]):
                 continue
             interior = pygame.Rect(
                 int(pad + c*cell_w + wall_thickness),
                 int(pad + r*cell_h + wall_thickness),
-                int(cell_w  - 2*wall_thickness),
-                int(cell_h  - 2*wall_thickness)
+                int(cell_w - 2*wall_thickness),
+                int(cell_h - 2*wall_thickness)
             )
             free_areas.append(interior)
 
-    # 2) scatter obstacles in those areas
+    # scatter obstacles in those areas
     obstacle_list = []
     attempts = 0
     while len(obstacle_list) < n_obstacles and attempts < n_obstacles*10:
@@ -154,20 +143,10 @@ def draw_random_obstacles(
 
 def draw_cells(cells, screen, block_width, color = "red"):
     for cell in cells:
-        rect = pygame.Rect(
-            cell[0] * block_width,
-            cell[1] * block_width,
-            block_width,
-            block_width
-        )
+        rect = pygame.Rect( cell[0] * block_width, cell[1] * block_width, block_width, block_width)
         pygame.draw.rect(screen, color, rect, 1)  # Draw the cell with a red border
 
 def draw_cells_filled(cells, screen, block_width, color = "red"):
     for cell in cells:
-        rect = pygame.Rect(
-            cell[0] * block_width,
-            cell[1] * block_width,
-            block_width,
-            block_width
-        )
+        rect = pygame.Rect( cell[0] * block_width, cell[1] * block_width, block_width, block_width)
         pygame.draw.rect(screen, color, rect)  # Draw the cell with a red border

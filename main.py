@@ -20,27 +20,23 @@ pygame.init()
 
 default_font = pygame.font.SysFont('Arial', 10)
 
-draw_observed_cells = False
-draw_landmark_line = False
-draw_sigma = False
-draw_estimated_path = False
-draw_sensors = False
+# set debugging booleans
+(draw_observed_cells, draw_landmark_line, draw_sigma, draw_estimated_path, draw_sensors) = (False,) * 5
 visualize_mapping = True
 
 #set up display 
 clock = pygame.time.Clock()
 
-# Setup Robot Parameter
-theta = 0
-x = 100
-y = 100
-v_left = 0
-v_right = 0
-r = 20 # robot radius
+# robot params
+x, y, theta = 100, 100, 0 
 initial_pose = np.array([x, y, theta])
-axel_length = 15 # distance between wheels
-max_sensor_range = 200 # max sensor range
-num_sensors = 96
+v_left, v_right = 0, 0
+r = 20 # robot radius
+axel_length = 15
+
+# sensor params
+max_sensor_range, num_sensors = 200, 96
+sensor_noise = 0
 
 robot = Robot(x,y,theta,r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
 
@@ -64,10 +60,6 @@ BLOCK_SIZE = 100
 SCREEN_W, SCREEN_H = BLOCK_W * BLOCK_SIZE, BLOCK_H * BLOCK_SIZE
 WALL_THICKNESS = 4
 GRID_SIZE = WALL_THICKNESS
-
-# the drawable map area (inside the padding)
-MAP_W = SCREEN_W - 2 * PAD
-MAP_H = SCREEN_H - 2 * PAD
 
 # occupancy grid: cols = MAP_W/GRID_SIZE, rows = MAP_H/GRID_SIZE
 grid = np.zeros((
@@ -106,44 +98,32 @@ vert = [
 # force all outer borders ON
 # top and bottom horizontal walls:
 for c in range(BLOCK_W):
-    horiz[0][c] = 1             # top edge of map
-    horiz[BLOCK_H][c] = 1        # bottom edge of map
+    horiz[0][c] = 1 # top edge of map
+    horiz[BLOCK_H][c] = 1 # bottom edge of map
 
 # left and right vertical walls:
 for r in range(BLOCK_H):
-    vert[r][0] = 1              # left edge of map
-    vert[r][BLOCK_W] = 1         # right edge of map
+    vert[r][0] = 1 # left edge of map
+    vert[r][BLOCK_W] = 1 # right edge of map
 
-# 1) draw all your walls once
-walls = draw_map(
-    main_surface,
-    horiz, vert,
-    pad=PAD,
-    grid_w=BLOCK_W, grid_h=BLOCK_H,
-    wall_color=(0,0,0),
-    wall_thickness=WALL_THICKNESS
-)
+# draw all your walls once
+walls = draw_map(main_surface,horiz, vert,pad=PAD,grid_w=BLOCK_W, grid_h=BLOCK_H,wall_color=(0,0,0),wall_thickness=WALL_THICKNESS)
 
-# 2) compute your landmarks once
-landmarks = compute_landmarks(
-    horiz, vert,
-    main_surface,
-    pad=PAD,
-    grid_w=BLOCK_W, grid_h=BLOCK_H
-)
+# compute your landmarks once
+landmarks = compute_landmarks(horiz, vert, main_surface, pad=PAD, grid_w=BLOCK_W, grid_h=BLOCK_H)
 
-# 3) scatter N obstacles into the free cells
+# scatter obstacles into the free cells
 obstacles = draw_random_obstacles(
     main_surface,
-    wall_list      = walls,
-    horiz          = horiz,
-    vert           = vert,
-    pad            = PAD,
-    grid_w         = BLOCK_W,
-    grid_h         = BLOCK_H,
+    wall_list = walls,
+    horiz = horiz,
+    vert = vert,
+    pad = PAD,
+    grid_w = BLOCK_W,
+    grid_h = BLOCK_H,
     wall_thickness = WALL_THICKNESS,
-    n_obstacles    = 20,
-    obstacle_mu    = 7.5,
+    n_obstacles = 20,
+    obstacle_mu = 7.5,
     obstacle_sigma = 1.5,
     obstacle_color = (0,0,0)
 )
@@ -163,23 +143,8 @@ while running:
     main_surface.fill((255,255,255))
     if visualize_mapping:
         second_surface.fill((255,255,255))
-
-    walls = draw_map(
-        main_surface,
-        horiz, vert,
-        pad=PAD,
-        grid_w=BLOCK_W, grid_h=BLOCK_H,
-        wall_color=(0,0,0),
-        wall_thickness=4
-    )
-    landmarks = compute_landmarks(
-        horiz, vert,
-        main_surface,
-        pad=PAD,
-        grid_w=BLOCK_W, grid_h=BLOCK_H
-    )
         
-    # 4) re-draw the static map each frame
+    # re-draw the static map each frame
     for w in walls:
         pygame.draw.rect(main_surface, (0,0,0), w)
     for o in obstacles:
