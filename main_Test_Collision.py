@@ -12,7 +12,7 @@ from kalman_filter import KalmanFilter
 from landmark import *
 from utils import draw_covariance_ellipse, draw_dashed_lines
 from map_Refactor import *
-from robotV2 import Robot
+from robot import Robot
 
 # pygame setup
 pygame.init()
