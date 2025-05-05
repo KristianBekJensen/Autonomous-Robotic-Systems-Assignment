@@ -1,5 +1,10 @@
 import pygame
 import random
+import numpy as np
+
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
 
 def draw_map(screen, horiz, vert, pad=20, grid_w=16, grid_h=9, wall_color=(0, 0, 0), wall_thickness=1):
     screen_w, screen_h = screen.get_size()

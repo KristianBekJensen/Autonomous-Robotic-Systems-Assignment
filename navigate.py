@@ -15,11 +15,11 @@ def navigate(keys, v_left, v_right):
         v_right *= 0.99
     elif keys[pygame.K_a]:
         v_left *= 0.99
-    elif keys[pygame.K_q]:
+    elif keys[pygame.K_e]:
         if v_left == 0 and v_right == 0:
             v_left = 0.3
             v_right = -v_left
-    elif keys[pygame.K_e]:
+    elif keys[pygame.K_q]:
         if v_left == 0 and v_right == 0:
             v_right = 0.3
             v_left = -v_right

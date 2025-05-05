@@ -15,13 +15,18 @@ from map import *
 from robot import Robot
 import random
 
+SEED = 42
+random.seed(SEED)
+np.random.seed(SEED)
+
 # pygame setup
 pygame.init()
 
 default_font = pygame.font.SysFont('Arial', 10)
 
 # set debugging booleans
-(draw_observed_cells, draw_landmark_line, draw_sigma, draw_estimated_path, draw_sensors) = (False,) * 5
+(draw_observed_cells, draw_landmark_line, draw_sigma, draw_sensors) = (False,) * 4
+draw_estimated_path = True
 visualize_mapping = True
 
 #set up display 
