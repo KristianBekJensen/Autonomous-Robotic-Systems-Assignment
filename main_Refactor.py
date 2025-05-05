@@ -70,8 +70,8 @@ MAP_H = SCREEN_H - 2 * PAD
 
 # occupancy grid: cols = MAP_W/GRID_SIZE, rows = MAP_H/GRID_SIZE
 grid = np.zeros((
-    int(MAP_W  / GRID_SIZE),
-    int(MAP_H  / GRID_SIZE)
+    int(SCREEN_W  / GRID_SIZE),
+    int(SCREEN_H  / GRID_SIZE)
 ))
 
 screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
