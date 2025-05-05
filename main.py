@@ -7,7 +7,6 @@ from kinematics import differential_drive_kinematics
 from mapping import get_observed_cells, line_through_grid
 from navigate import navigate
 import sensors as sn
-import maps
 from kalman_filter import KalmanFilter
 from landmark import *
 from utils import draw_covariance_ellipse, draw_dashed_lines
