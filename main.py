@@ -1,10 +1,11 @@
+from pickle import TRUE
 import pygame
 import math
 import numpy as np
 import itertools
 from collections import deque
 from kinematics import differential_drive_kinematics
-from mapping import get_observed_cells, line_through_grid
+from mapping import get_observed_cells, line_through_grid, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
 import sensors as sn
 from kalman_filter import KalmanFilter
@@ -24,6 +25,7 @@ draw_landmark_line = False
 draw_sigma = False
 draw_estimated_path = False
 draw_sensors = False
+visualize_mapping = True
 
 #set up display 
 clock = pygame.time.Clock()
@@ -57,7 +59,7 @@ kf = KalmanFilter(initial_pose, initial_covariance, R, Q)
 
 # map resolution for occupancy grid
 PAD = 20
-BLOCK_W, BLOCK_H = 16, 9
+BLOCK_W, BLOCK_H = 8, 8
 BLOCK_SIZE = 100
 SCREEN_W, SCREEN_H = BLOCK_W * BLOCK_SIZE, BLOCK_H * BLOCK_SIZE
 WALL_THICKNESS = 4
@@ -72,9 +74,18 @@ grid = np.zeros((
     int(SCREEN_W  / GRID_SIZE),
     int(SCREEN_H  / GRID_SIZE)
 ))
+# occupancy grid as probabilites [0;1]
+grid_probability = np.full((
+    int(SCREEN_W / GRID_SIZE),
+    int(SCREEN_H / GRID_SIZE)
+), 0.5)
+
 sensor_noise = 0
 
-screen = pygame.display.set_mode((SCREEN_W, SCREEN_H))
+screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H))
+main_surface = screen.subsurface((0,0,SCREEN_W, SCREEN_H))
+if visualize_mapping:
+    second_surface = screen.subsurface((SCREEN_W, 0, SCREEN_W, SCREEN_H))
 
 # near the top of your file, pick a wall probability
 WALL_H_PROB = 0.2
@@ -105,7 +116,7 @@ for r in range(BLOCK_H):
 
 # 1) draw all your walls once
 walls = draw_map(
-    screen,
+    main_surface,
     horiz, vert,
     pad=PAD,
     grid_w=BLOCK_W, grid_h=BLOCK_H,
@@ -116,14 +127,14 @@ walls = draw_map(
 # 2) compute your landmarks once
 landmarks = compute_landmarks(
     horiz, vert,
-    screen,
+    main_surface,
     pad=PAD,
     grid_w=BLOCK_W, grid_h=BLOCK_H
 )
 
 # 3) scatter N obstacles into the free cells
 obstacles = draw_random_obstacles(
-    screen,
+    main_surface,
     wall_list      = walls,
     horiz          = horiz,
     vert           = vert,
@@ -149,10 +160,12 @@ while running:
             running = False
     
     # reset screen
-    screen.fill((255,255,255))
+    main_surface.fill((255,255,255))
+    if visualize_mapping:
+        second_surface.fill((255,255,255))
 
     walls = draw_map(
-        screen,
+        main_surface,
         horiz, vert,
         pad=PAD,
         grid_w=BLOCK_W, grid_h=BLOCK_H,
@@ -161,27 +174,27 @@ while running:
     )
     landmarks = compute_landmarks(
         horiz, vert,
-        screen,
+        main_surface,
         pad=PAD,
         grid_w=BLOCK_W, grid_h=BLOCK_H
     )
         
     # 4) re-draw the static map each frame
     for w in walls:
-        pygame.draw.rect(screen, (0,0,0), w)
+        pygame.draw.rect(main_surface, (0,0,0), w)
     for o in obstacles:
-        pygame.draw.rect(screen, (0,0,0), o)
+        pygame.draw.rect(main_surface, (0,0,0), o)
     for (i, m_x, m_y) in landmarks:
-        pygame.draw.circle(screen, "blue", (m_x,m_y), 5)
+        pygame.draw.circle(main_surface, "blue", (m_x,m_y), 5)
 
-    robot.draw_Robot(screen)
+    robot.draw_Robot(main_surface)
 
     environment_objects = walls + obstacles
-    robot.sense(environment_objects, screen, draw_sensors, sensor_noise)
+    robot.sense(environment_objects, main_surface, draw_sensors, sensor_noise)
 
     # detect landmarks
-    detected_landmarks = robot.detect_landmarks(landmarks, screen, draw_landmark_line)
-    robot.estimate_pose(kf, landmarks, detected_landmarks, screen, position_measurement_noise, theta_mesurement_noise, process_noise)
+    detected_landmarks = robot.detect_landmarks(landmarks, main_surface, draw_landmark_line)
+    robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
     # React on key inputs from the user and adjust wheel speeds
     keys = pygame.key.get_pressed()
@@ -194,7 +207,7 @@ while running:
 
     # Draw the robot's trajectory
     if draw_estimated_path:
-        robot.drawTrajectories(screen)
+        robot.drawTrajectories(main_surface)
 
     # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
     now = pygame.time.get_ticks()
@@ -205,13 +218,13 @@ while running:
         robot.uncertainty_regions.append((mean, cov))
         last_sample_time = now
     if draw_sigma:
-        robot.draw_uncertainty_ellipse(screen)
+        robot.draw_uncertainty_ellipse(main_surface)
     
     free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, grid.shape[0], grid.shape[1])
     
     if draw_observed_cells:
-        draw_cells(free_cells, screen, GRID_SIZE)
-        draw_cells(occipied_cells, screen, GRID_SIZE, "green")
+        draw_cells(free_cells, main_surface, GRID_SIZE)
+        draw_cells(occipied_cells, main_surface, GRID_SIZE, "green")
 
     for free in free_cells:
         grid[free[0]][free[1]] += -0.85
@@ -222,8 +235,17 @@ while running:
     for i in range(len(grid)):
         for j in range(len(grid[i])):
             if grid[i][j] > 0:
-                draw_cells_filled([(i, j)], screen, GRID_SIZE, "purple")
+                draw_cells_filled([(i, j)], main_surface, GRID_SIZE, "purple")
 
+    grid_probability = log_odds_to_prob(grid)
+    grid_probability = probs_to_grey_scale(grid_probability)
+
+    if visualize_mapping:
+        # draw the grid probabilities 
+        for i in range(len(grid_probability)):
+            for j in range(len(grid_probability[i])):
+                color = grid_probability[i][j]
+                pygame.draw.rect(second_surface, (color,color,color), (i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
     # Shows on display
     pygame.display.flip()
