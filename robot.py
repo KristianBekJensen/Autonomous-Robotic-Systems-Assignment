@@ -67,13 +67,14 @@ class Robot:
 
     def check_collisions(self, new_x, new_y, walls):
         """Check and resolve collisions with multiple walls"""
-        # First, try the move
+        # Future possible position
         test_x, test_y = new_x, new_y
         
         # Check each wall for collision
         collided_walls = []
         for wall in walls:
-            # Calculate closest point on rectangle to circle center
+
+            # Getclosest point on rectangle to robot center
             closest_x = max(wall.x, min(test_x, wall.x + wall.width))
             closest_y = max(wall.y, min(test_y, wall.y + wall.height))
             
@@ -86,32 +87,34 @@ class Robot:
             if distance < self.radius:
                 collided_walls.append((wall, closest_x, closest_y, distance))
 
-            # If no collisions, accept the move
+        # If no collided walls, move to the possible position
         if not collided_walls:
             return test_x, test_y
         
-        # Handle collisions
+        # Handle collisions and adjust the new position (x,y adjusted)
         adjusted_x, adjusted_y = self.resolve_collisions(test_x, test_y, collided_walls)
         return adjusted_x, adjusted_y
     
     def resolve_collisions(self, test_x, test_y, collided_walls):
         """Resolve collisions with potentially multiple walls"""
-        # Start with the attempted position
+
+        # Initialize with  attempted position
         adjusted_x, adjusted_y = test_x, test_y
         
         for wall, closest_x, closest_y, distance in collided_walls:
-            # Calculate normal vector from closest point to circle center
+            # Calculate normal vector from closest point of wall to the robot center and calculate push direction
+
             if distance > 0:  # Avoid division by zero
                 normal_x = (test_x - closest_x) / distance
                 normal_y = (test_y - closest_y) / distance
             else:
-                # If center is exactly on edge, use direction from previous position
+                # If center is exactly on edge, use direction between previous and attempted position
                 dx = test_x - self.x
                 dy = test_y - self.y
-                mag = math.sqrt(dx**2 + dy**2)
-                if mag > 0:
-                    normal_x = dx / mag
-                    normal_y = dy / mag
+                magnitude = math.sqrt(dx**2 + dy**2)
+                if magnitude > 0:
+                    normal_x = dx / magnitude
+                    normal_y = dy / magnitude
                 else:
                     # Default push direction if no movement
                     normal_x, normal_y = 0, -1
