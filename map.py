@@ -2,21 +2,58 @@ import pygame
 import random
 import numpy as np
 
-SEED = 42
+SEED = 44
 random.seed(SEED)
 np.random.seed(SEED)
 
-def draw_map(screen, horiz, vert, pad=20, grid_w=16, grid_h=9, wall_color=(0, 0, 0), wall_thickness=1):
+def clamp(value, minimum, maximum):
+    return max(minimum, min(value, maximum))
+
+def draw_map(screen, num_blocks_w, num_blocks_h, 
+    pad=20, 
+    wall_color=(0, 0, 0), 
+    wall_h_prob=0.2,
+    wall_v_prob=0.2,
+    wall_thickness=1,
+    p_landmark=0.25,
+    n_obstacles=100,
+    obstacle_mu=7.5,
+    obstacle_sigma=1.5,
+    obstacle_color=(0,0,0)
+):
     screen_w, screen_h = screen.get_size()
     map_w = screen_w - 2 * pad
     map_h = screen_h - 2 * pad
-    cell_w = map_w / grid_w
-    cell_h = map_h / grid_h
+    cell_w = map_w / num_blocks_w
+    cell_h = map_h / num_blocks_h
 
+    horiz = [
+        [1 if random.random() < wall_h_prob else 0
+        for _ in range(num_blocks_w)]
+        for _ in range(num_blocks_h+1)
+    ]
+    vert = [
+        [1 if random.random() < wall_v_prob else 0
+        for _ in range(num_blocks_w+1)]
+        for _ in range(num_blocks_h)
+    ]
+
+    # force all outer borders ON
+    # top and bottom horizontal walls:
+    for c in range(num_blocks_w):
+        horiz[0][c] = 1 # top edge of map
+        horiz[num_blocks_h][c] = 1 # bottom edge of map
+
+    # left and right vertical walls:
+    for r in range(num_blocks_h):
+        vert[r][0] = 1 # left edge of map
+        vert[r][num_blocks_w] = 1 # right edge of map
+
+    ## WALLS
     wall_list = []
 
     # Horizontal walls
-    for r in range(grid_h + 1):
+    for r in range(num_blocks_h + 1):
         y = pad + r * cell_h
         for c, present in enumerate(horiz[r]):
             if present:
@@ -26,7 +63,7 @@ def draw_map(screen, horiz, vert, pad=20, grid_w=16, grid_h=9, wall_color=(0, 0,
                 wall_list.append(rect)
 
     # Vertical walls
-    for r in range(grid_h):
+    for r in range(num_blocks_h):
         y = pad + r * cell_h
         for c, present in enumerate(vert[r]):
             if present:
@@ -35,20 +72,13 @@ def draw_map(screen, horiz, vert, pad=20, grid_w=16, grid_h=9, wall_color=(0, 0,
                 pygame.draw.rect(screen, wall_color, rect)
                 wall_list.append(rect)
 
-    return wall_list
 
-def compute_landmarks(horiz, vert, screen, pad=20, grid_w=16, grid_h=9, p_landmark=0.25):
-    sw, sh = screen.get_size()
-    map_w = sw - 2*pad
-    map_h = sh - 2*pad
-    cell_w = map_w / grid_w
-    cell_h = map_h / grid_h
-
+    ## LANDMARKS
     landmarks = []
     l_id = 0
 
     # Horizontal segments: r in [0..grid_h], c in [0..grid_w-1]
-    for r in range(grid_h + 1):
+    for r in range(num_blocks_h + 1):
         y = pad + r * cell_h
         for c, present in enumerate(horiz[r]):
             if not present:
@@ -66,7 +96,7 @@ def compute_landmarks(horiz, vert, screen, pad=20, grid_w=16, grid_h=9, p_landma
                 l_id += 1
 
     # Vertical segments: r in [0..grid_h-1], c in [0..grid_w]
-    for r in range(grid_h):
+    for r in range(num_blocks_h):
         x = pad + c * cell_w
         for c, present in enumerate(vert[r]):
             if not present:
@@ -84,36 +114,11 @@ def compute_landmarks(horiz, vert, screen, pad=20, grid_w=16, grid_h=9, p_landma
                 landmarks.append((l_id, int(x), int(y2)))
                 l_id += 1
 
-    return landmarks
-
-    
-def clamp(value, minimum, maximum):
-    return max(minimum, min(value, maximum))
-
-def draw_random_obstacles(
-    screen,
-    wall_list,
-    horiz,
-    vert,
-    pad=20,
-    grid_w=16,
-    grid_h=9,
-    wall_thickness=1,
-    n_obstacles=100,
-    obstacle_mu=7.5,
-    obstacle_sigma=1.5,
-    obstacle_color=(0,0,0)
-):
-    sw, sh = screen.get_size()
-    map_w = sw - 2*pad
-    map_h = sh - 2*pad
-    cell_w = map_w / grid_w
-    cell_h = map_h / grid_h
 
     # collect all cell‐interiors that have no walls on any of their 4 borders
     free_areas = []
-    for r in range(grid_h):
-        for c in range(grid_w):
+    for r in range(num_blocks_h):
+        for c in range(num_blocks_w):
             if (horiz[r][c] or horiz[r+1][c] or
                 vert[r][c] or vert[r][c+1]):
                 continue
@@ -125,16 +130,14 @@ def draw_random_obstacles(
             )
             free_areas.append(interior)
 
-    # scatter obstacles in those areas
+    ## OBSTACLES scattered in the map
     obstacle_list = []
     attempts = 0
     while len(obstacle_list) < n_obstacles and attempts < n_obstacles*10:
         attempts += 1
         area = random.choice(free_areas)
-        #w = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
-        #h = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
-        w = wall_thickness * 2
-        h = wall_thickness * 2
+        w = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
+        h = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
         ox = random.uniform(area.x, area.x + area.width  - w)
         oy = random.uniform(area.y, area.y + area.height - h)
         orect = pygame.Rect(int(ox), int(oy), int(w), int(h))
@@ -146,7 +149,8 @@ def draw_random_obstacles(
         pygame.draw.rect(screen, obstacle_color, orect)
         obstacle_list.append(orect)
 
-    return obstacle_list
+    return wall_list, landmarks, obstacle_list
+
 
 def draw_cells(cells, screen, block_width, color = "red"):
     for cell in cells:

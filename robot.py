@@ -5,7 +5,6 @@ import math
 import itertools
 from kinematics import differential_drive_kinematics
 from landmark import two_point_triangulate, get_landmark_measurements
-from sensors import detect_walls
 from utils import draw_covariance_ellipse
 
 class Robot:

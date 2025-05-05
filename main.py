@@ -7,17 +7,12 @@ from collections import deque
 from kinematics import differential_drive_kinematics
 from mapping import calculate_mapping_accuracy, get_observed_cells, line_through_grid, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
-import sensors as sn
 from kalman_filter import KalmanFilter
 from landmark import *
 from utils import draw_covariance_ellipse, draw_dashed_lines
 from map import *
 from robot import Robot
 import random
-
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
 
 # pygame setup
 pygame.init()
@@ -60,9 +55,9 @@ kf = KalmanFilter(initial_pose, initial_covariance, R, Q)
 
 # map resolution for occupancy grid
 PAD = 20
-BLOCK_W, BLOCK_H = 8, 8
+NUM_BLOCKS_W, NUM_BLOCKS_H = 8, 8
 BLOCK_SIZE = 100
-SCREEN_W, SCREEN_H = BLOCK_W * BLOCK_SIZE, BLOCK_H * BLOCK_SIZE
+SCREEN_W, SCREEN_H = NUM_BLOCKS_W * BLOCK_SIZE, NUM_BLOCKS_H * BLOCK_SIZE
 WALL_THICKNESS = 4
 GRID_SIZE = WALL_THICKNESS
 
@@ -84,55 +79,21 @@ main_surface = screen.subsurface((0,0,SCREEN_W, SCREEN_H))
 if visualize_mapping:
     second_surface = screen.subsurface((SCREEN_W, 0, SCREEN_W, SCREEN_H))
 
-# near the top of your file, pick a wall probability
-WALL_H_PROB = 0.2
-WALL_V_PROB = 0.2
 
-# then when you initialize:
-horiz = [
-    [1 if random.random() < WALL_H_PROB else 0
-     for _ in range(BLOCK_W)]
-    for _ in range(BLOCK_H+1)
-]
-vert = [
-    [1 if random.random() < WALL_V_PROB else 0
-     for _ in range(BLOCK_W+1)]
-    for _ in range(BLOCK_H)
-]
-
-# force all outer borders ON
-# top and bottom horizontal walls:
-for c in range(BLOCK_W):
-    horiz[0][c] = 1 # top edge of map
-    horiz[BLOCK_H][c] = 1 # bottom edge of map
-
-# left and right vertical walls:
-for r in range(BLOCK_H):
-    vert[r][0] = 1 # left edge of map
-    vert[r][BLOCK_W] = 1 # right edge of map
-
-# draw all your walls once
-walls = draw_map(main_surface,horiz, vert,pad=PAD,grid_w=BLOCK_W, grid_h=BLOCK_H,wall_color=(0,0,0),wall_thickness=WALL_THICKNESS)
-
-# compute your landmarks once
-landmarks = compute_landmarks(horiz, vert, main_surface, pad=PAD, grid_w=BLOCK_W, grid_h=BLOCK_H)
-
-# scatter obstacles into the free cells
-obstacles = draw_random_obstacles(
-    main_surface,
-    wall_list = walls,
-    horiz = horiz,
-    vert = vert,
-    pad = PAD,
-    grid_w = BLOCK_W,
-    grid_h = BLOCK_H,
-    wall_thickness = WALL_THICKNESS,
-    n_obstacles = 20,
-    obstacle_mu = 7.5,
-    obstacle_sigma = 1.5,
-    obstacle_color = (0,0,0)
+# All Map Elements
+walls, landmarks, obstacles = draw_map(
+    main_surface, num_blocks_w=NUM_BLOCKS_W, num_blocks_h=NUM_BLOCKS_H, 
+    pad=PAD, 
+    wall_color=(0, 0, 0), 
+    wall_h_prob=0.2,
+    wall_v_prob=0.2,
+    wall_thickness=WALL_THICKNESS,
+    p_landmark=0.25,
+    n_obstacles=30,
+    obstacle_mu=7.5,
+    obstacle_sigma=1.5,
+    obstacle_color=(0,0,0)
 )
-
 
 pygame.display.flip()
 
