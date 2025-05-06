@@ -38,52 +38,6 @@ def get_landmark_measurements(landmarks, robot_pose):
     
     return measurements
 
-def triangulate_position(measurements, landmarks):
-    """
-    Calculate robot position from landmark measurements using triangulation
-    This is a simplified calculation that averages positions from all landmarks
-    
-    Parameters:
-    -----------
-    measurements : list of tuples
-        List of measurements [(range1, bearing1, id1), (range2, bearing2, id2), ...]
-    landmarks : list of tuples
-        List of landmark positions
-        
-    Returns:
-    --------
-    position : numpy.ndarray
-        Estimated robot position [x, y, theta]
-    """
-    x_sum, y_sum, theta_sum = 0, 0, 0
-    count = 0
-    
-    for r, phi, s in measurements:
-
-        lookup = {idx: (x, y) for idx, x, y in landmarks}
-        m_x, m_y = lookup[s]
-        
-        # Estimate position based on range and bearing
-        count += 1
-        
-        # For theta estimation, we use the bearing measurement
-        # and the known positions of landmarks
-        estimated_theta = atan2(m_y - y_sum/max(1, count-1), 
-                                m_x - x_sum/max(1, count-1)) - phi
-        
-        # Normalize theta [0, 2pi]
-        estimated_theta = (estimated_theta + np.pi) % (2 * np.pi)
-        # Update sums
-        theta_sum += estimated_theta
-        
-        # Estimate position based on range and bearing
-        x_sum += m_x - r * cos(phi + estimated_theta)
-        y_sum += m_y - r * sin(phi + estimated_theta)
-    
-    if count > 0:
-        return np.array([x_sum/count, y_sum/count, theta_sum/count]) # this is z
-    else:
-        return np.array([0, 0, 0])
 
 def phi(point, landmark, theta):
     x, y = point
