@@ -1,28 +1,26 @@
-from pickle import TRUE
 import pygame
-import math
 import numpy as np
-import itertools
-from collections import deque
-from kinematics import differential_drive_kinematics
-from mapping import calculate_mapping_accuracy, get_observed_cells, line_through_grid, log_odds_to_prob, probs_to_grey_scale
+from mapping import get_observed_cells, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
 from kalman_filter import KalmanFilter
-from landmark import *
-from utils import draw_covariance_ellipse, draw_dashed_lines
 from maps import *
 from robot import Robot
-import random
+# Import the trajectory recorder
+from trajectory_recorder import TrajectoryRecorder
 
 # pygame setup
 pygame.init()
 
 default_font = pygame.font.SysFont('Arial', 10)
+info_font = pygame.font.SysFont('Arial', 18)
 
 # set debugging booleans
 (draw_observed_cells, draw_landmark_line, draw_sigma, draw_sensors) = (False,) * 4
 draw_estimated_path = True
 visualize_mapping = True
+
+# Create trajectory recorder
+trajectory_recorder = TrajectoryRecorder()
 
 #set up display 
 clock = pygame.time.Clock()
@@ -35,21 +33,20 @@ r = 20 # robot radius
 axel_length = 15
 
 # sensor params
-max_sensor_range, num_sensors = 200, 96
+max_sensor_range, num_sensors = 100, 96
 sensor_noise = 0
 
-robot = Robot(x,y,theta,r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
+robot = Robot(x, y, theta, r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
 
 # Setup Kalman Filter
-process_noise = 0.1
-position_measurement_noise = 0.1
-theta_mesurement_noise = 0.05
+process_noise = 0.01
+position_measurement_noise = 0.01
+theta_mesurement_noise = 0.005
 R = np.diag([2, 2, 0.2**2])  # Process noise
 Q = np.diag([2, 2, 0.2**2])  # Measurement noise
 initial_covariance = np.diag([0.1, 0.1, 0.1])  # For local localization
 SAMPLE_INTERVAL = 2000
 last_sample_time = pygame.time.get_ticks()
-
 
 kf = KalmanFilter(initial_pose, initial_covariance, R, Q)  
 
@@ -79,7 +76,6 @@ main_surface = screen.subsurface((0,0,SCREEN_W, SCREEN_H))
 if visualize_mapping:
     second_surface = screen.subsurface((SCREEN_W, 0, SCREEN_W, SCREEN_H))
 
-
 # All Map Elements
 walls, landmarks, obstacles = draw_map(
     main_surface, num_blocks_w=NUM_BLOCKS_W, num_blocks_h=NUM_BLOCKS_H, 
@@ -95,16 +91,48 @@ walls, landmarks, obstacles = draw_map(
     obstacle_color=(0,0,0)
 )
 
+# Trajectory mode info
+mode_info = "Manual Control"
+mode_color = (0, 0, 255)  # Blue for manual control
+
+# Variable for trajectory filename
+trajectory_filename = "trajectory.pkl"
+
 pygame.display.flip()
+
 
 # Game Loop 
 running = True
 while running:
-
+    current_time = pygame.time.get_ticks()
+    
     #check for close game
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        elif event.type == pygame.KEYDOWN:
+            # Trajectory recording/playback controls
+            if event.key == pygame.K_r:  # R key - Start/Stop Recording
+                if trajectory_recorder.is_recording():
+                    trajectory_recorder.stop_recording()
+                    trajectory_recorder.save_trajectory(trajectory_filename)
+                    mode_info = "Manual Control"
+                    mode_color = (0, 0, 255)  # Blue
+                else:
+                    trajectory_recorder.start_recording(current_time)
+                    mode_info = "Recording"
+                    mode_color = (255, 0, 0)  # Red
+            
+            elif event.key == pygame.K_p:  # P key - Start/Stop Playback
+                if trajectory_recorder.is_replaying():
+                    trajectory_recorder.stop_replay()
+                    mode_info = "Manual Control"
+                    mode_color = (0, 0, 255)  # Blue
+                else:
+                    if trajectory_recorder.load_trajectory(trajectory_filename):
+                        trajectory_recorder.start_replay(current_time)
+                        mode_info = "Playback"
+                        mode_color = (0, 255, 0)  # Green
     
     #Key mappings for debugging
     keys = pygame.key.get_pressed()
@@ -132,6 +160,21 @@ while running:
     for (i, m_x, m_y) in landmarks:
         pygame.draw.circle(main_surface, "blue", (m_x,m_y), 5)
 
+    # Record trajectory if recording is active
+    if trajectory_recorder.is_recording():
+        trajectory_recorder.record_point(
+            current_time, robot.x, robot.y, robot.theta, robot.v_left, robot.v_right
+        )
+    
+    # Handle trajectory playback if active
+    if trajectory_recorder.is_replaying():
+        replay_point = trajectory_recorder.get_replay_point(current_time)
+        if replay_point:
+            x, y, theta, v_left, v_right = replay_point
+            # Update robot state directly for playback
+            robot.x, robot.y, robot.theta = x, y, theta
+            robot.v_left, robot.v_right = v_left, v_right
+    
     robot.draw_Robot(main_surface)
 
     environment_objects = walls + obstacles
@@ -141,15 +184,15 @@ while running:
     detected_landmarks = robot.detect_landmarks(landmarks, main_surface, draw_landmark_line)
     robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
-    # React on key inputs from the user and adjust wheel speeds
-    v_left, v_right = navigate(keys, robot.v_left, robot.v_right)
-    robot.v_left = v_left
-    robot.v_right = v_right
+    # Only process user input if not in playback mode
+    if not trajectory_recorder.is_replaying():
+        # React on key inputs from the user and adjust wheel speeds
+        v_left, v_right = navigate(keys, robot.v_left, robot.v_right)
+        robot.v_left = v_left
+        robot.v_right = v_right
 
     # Move the robot and execute collision handling
     robot.move(environment_objects)
-
-
 
     # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
     now = pygame.time.get_ticks()
@@ -169,10 +212,9 @@ while running:
         draw_cells(occipied_cells, main_surface, GRID_SIZE, "green")
 
     for free in free_cells:
-        grid[free[0]][free[1]] += -0.85
-
+        grid[free[0]][free[1]] += -0.85 / (kf.sigma[0][0])
     for occ in occipied_cells:
-        grid[occ[0]][occ[1]] += 2.2
+        grid[occ[0]][occ[1]] += 2.2 / (kf.sigma[0][0])
 
     for i in range(len(grid)):
         for j in range(len(grid[i])):
@@ -180,7 +222,6 @@ while running:
                 draw_cells_filled([(i, j)], main_surface, GRID_SIZE, "purple")
 
     grid_probability = log_odds_to_prob(grid)
-    #print(f"Mapping accurarcy: {calculate_mapping_accuracy(grid_probability, walls, obstacles, SCREEN_W, SCREEN_H, GRID_SIZE)}")
     grid_probability = probs_to_grey_scale(grid_probability)
 
     if visualize_mapping:
@@ -197,9 +238,22 @@ while running:
         else:
             robot.drawTrajectories(main_surface)
 
+    # Draw mode info
+    mode_text = info_font.render(mode_info, True, mode_color)
+    main_surface.blit(mode_text, (SCREEN_W-180, 25))
+    
+    # Draw trajectory controls info
+    controls_text = info_font.render("R: Record | P: Playback" , True, (0, 0, 0))
+    main_surface.blit(controls_text, (SCREEN_W-180, 50))
+
     # Shows on display
     pygame.display.flip()
 
     clock.tick(60)
+
+# Before quitting, ensure trajectory is saved if recording
+if trajectory_recorder.is_recording():
+    trajectory_recorder.stop_recording()
+    trajectory_recorder.save_trajectory(trajectory_filename)
 
 pygame.quit()
