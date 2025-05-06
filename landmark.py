@@ -2,23 +2,6 @@ import numpy as np
 from math import cos, sin, atan2, sqrt
 
 def get_landmark_measurements(landmarks, robot_pose):
-    """
-    Get measurements to landmarks (range, bearing, signature)
-    
-    Parameters:
-    -----------
-    robot_pose : numpy.ndarray
-        Robot pose [x, y, theta]
-    add_noise : bool
-        Whether to add noise to measurements
-    noise_std : float
-        Standard deviation of measurement noise
-        
-    Returns:
-    --------
-    measurements : list of tuples
-        List of measurements [(range1, bearing1, id1), (range2, bearing2, id2), ...]
-    """
     x, y, theta = robot_pose
     measurements = []
     

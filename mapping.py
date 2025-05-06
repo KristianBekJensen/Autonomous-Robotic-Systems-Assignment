@@ -64,18 +64,6 @@ def line_through_grid(start, end, grid_size, number_x_grids, number_y_grids):
     return cells[0:-1], cells[-1] if cells else ([], start_cell)
 
 def get_observed_cells(robot, grid_size, number_x_grids, number_y_grids):
-    """
-    Determines which grid cells are observed as free or occupied based on sensor data.
-    
-    Parameters:
-    - robot: The robot object containing position and sensor information
-    - grid_size: Size of each grid cell
-    - grid_width: Number of grid cells in x-direction
-    - grid_height: Number of grid cells in y-direction
-    
-    Returns:
-    - Two sets: free cells and occupied cells
-    """
     estimated_x, estimated_y, estimated_theta = robot.estimated_poses[-1]
     free_cells = set()
     occupied_cells = set()
@@ -114,10 +102,6 @@ def probs_to_grey_scale(prob):
     return (prob * 255).astype(np.uint8)
 
 def calculate_mapping_accuracy(estimated_grid, walls, obstacles, screen_width, screen_height, grid_size):
-    """
-    Placeholder function to calculate mapping accuracy.
-    Replace this with the actual implementation.
-    """
     pass
     grid_real = np.zeros((int(screen_width  / grid_size),int(screen_height  / grid_size)))
     for wall in walls:
