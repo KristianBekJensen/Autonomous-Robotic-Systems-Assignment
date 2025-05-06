@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+import matplotlib.pyplot as plt
 from mapping import calculate_mapping_accuracy, get_observed_cells, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
 from kalman_filter import KalmanFilter
@@ -100,7 +101,7 @@ trajectory_filename = "trajectory.pkl"
 
 pygame.display.flip()
 
-
+values = []
 # Game Loop 
 running = True
 while running:
@@ -147,8 +148,31 @@ while running:
     elif keys[pygame.K_5]:
         draw_sensors = not draw_sensors
     elif keys[pygame.K_6]:
-        print(calculate_mapping_accuracy(grid_probability, walls, obstacles, SCREEN_W, SCREEN_H, GRID_SIZE))
-    
+         # x = indices, y = values
+        # x = indices, y = values
+        x = list(range(len(values)))
+        y = values
+
+        # Plotting
+        plt.plot(x, y, linestyle='-')
+        plt.title('Avg Error')
+        plt.xlabel('Time Step')
+        plt.ylabel('Value')
+        plt.plot(x[-1], y[-1], 'o')
+        plt.annotate('Final value: '+ str(float.__round__ (y[-1], 4)),
+            xy=(x[-1], y[-1]),  # theta, radius
+            xytext=(0.65, 0.2),    # fraction, fraction
+            textcoords='figure fraction',
+            arrowprops=dict(facecolor='black', shrink=0.05),
+            horizontalalignment='left',
+            verticalalignment='bottom',
+            )
+        plt.grid(True)
+        plt.show()
+        
+    values.append(calculate_mapping_accuracy(grid_probability, walls, obstacles, SCREEN_W, SCREEN_H, GRID_SIZE))
+   
+
     # reset screen
     main_surface.fill((255,255,255))
     if visualize_mapping:
