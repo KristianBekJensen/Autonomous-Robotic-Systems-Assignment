@@ -1,18 +1,10 @@
-from pickle import TRUE
 import pygame
-import math
 import numpy as np
-import itertools
-from collections import deque
-from kinematics import differential_drive_kinematics
-from mapping import calculate_mapping_accuracy, get_observed_cells, line_through_grid, log_odds_to_prob, probs_to_grey_scale
+from mapping import get_observed_cells, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
 from kalman_filter import KalmanFilter
-from landmark import *
-from utils import draw_covariance_ellipse, draw_dashed_lines
 from maps import *
 from robot import Robot
-import random
 # Import the trajectory recorder
 from trajectory_recorder import TrajectoryRecorder
 
@@ -41,15 +33,15 @@ r = 20 # robot radius
 axel_length = 15
 
 # sensor params
-max_sensor_range, num_sensors = 200, 12
+max_sensor_range, num_sensors = 100, 96
 sensor_noise = 0
 
 robot = Robot(x, y, theta, r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
 
 # Setup Kalman Filter
-process_noise = 0.1
-position_measurement_noise = 0.1
-theta_mesurement_noise = 0.05
+process_noise = 0.01
+position_measurement_noise = 0.01
+theta_mesurement_noise = 0.005
 R = np.diag([2, 2, 0.2**2])  # Process noise
 Q = np.diag([2, 2, 0.2**2])  # Measurement noise
 initial_covariance = np.diag([0.1, 0.1, 0.1])  # For local localization
@@ -212,7 +204,7 @@ while running:
         last_sample_time = now
     if draw_sigma:
         robot.draw_uncertainty_ellipse(main_surface)
-    
+    print(robot.sensor_values)
     free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, grid.shape[0], grid.shape[1])
     
     if draw_observed_cells:
@@ -220,10 +212,9 @@ while running:
         draw_cells(occipied_cells, main_surface, GRID_SIZE, "green")
 
     for free in free_cells:
-        grid[free[0]][free[1]] += -0.85
-
+        grid[free[0]][free[1]] += -0.85 / (kf.sigma[0][0])
     for occ in occipied_cells:
-        grid[occ[0]][occ[1]] += 2.2
+        grid[occ[0]][occ[1]] += 2.2 / (kf.sigma[0][0])
 
     for i in range(len(grid)):
         for j in range(len(grid[i])):
@@ -250,11 +241,11 @@ while running:
 
     # Draw mode info
     mode_text = info_font.render(mode_info, True, mode_color)
-    main_surface.blit(mode_text, (10, 10))
+    main_surface.blit(mode_text, (SCREEN_W-180, 25))
     
     # Draw trajectory controls info
     controls_text = info_font.render("R: Record | P: Playback" , True, (0, 0, 0))
-    main_surface.blit(controls_text, (10, 35))
+    main_surface.blit(controls_text, (SCREEN_W-180, 50))
 
     # Shows on display
     pygame.display.flip()
