@@ -238,9 +238,9 @@ while running:
         draw_cells(occipied_cells, main_surface, GRID_SIZE, "green")
 
     for free in free_cells:
-        grid[free[0]][free[1]] += -0.85 / (kf.sigma[0][0]+1)
+        grid[free[0]][free[1]] += -0.85 / ((kf.sigma[0][0]*10)+1)
     for occ in occipied_cells:
-        grid[occ[0]][occ[1]] += 2.2 / (kf.sigma[0][0]+1)
+        grid[occ[0]][occ[1]] += 2.2 / ((kf.sigma[0][0]*10)+1)
 
     for i in range(len(grid)):
         for j in range(len(grid[i])):
