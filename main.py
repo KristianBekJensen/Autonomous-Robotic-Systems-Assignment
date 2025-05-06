@@ -1,6 +1,6 @@
 import pygame
 import numpy as np
-from mapping import get_observed_cells, log_odds_to_prob, probs_to_grey_scale
+from mapping import calculate_mapping_accuracy, get_observed_cells, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
 from kalman_filter import KalmanFilter
 from maps import *
@@ -146,6 +146,8 @@ while running:
         draw_estimated_path = not draw_estimated_path
     elif keys[pygame.K_5]:
         draw_sensors = not draw_sensors
+    elif keys[pygame.K_6]:
+        print(calculate_mapping_accuracy(grid_probability, walls, obstacles, SCREEN_W, SCREEN_H, GRID_SIZE))
     
     # reset screen
     main_surface.fill((255,255,255))
@@ -222,13 +224,13 @@ while running:
                 draw_cells_filled([(i, j)], main_surface, GRID_SIZE, "purple")
 
     grid_probability = log_odds_to_prob(grid)
-    grid_probability = probs_to_grey_scale(grid_probability)
+    grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
 
     if visualize_mapping:
         # draw the grid probabilities 
-        for i in range(len(grid_probability)):
-            for j in range(len(grid_probability[i])):
-                color = grid_probability[i][j]
+        for i in range(len(grid_probability_grey_scale)):
+            for j in range(len(grid_probability_grey_scale[i])):
+                color = grid_probability_grey_scale[i][j]
                 pygame.draw.rect(second_surface, (color,color,color), (i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
     # Draw the robot's trajectory
