@@ -1,7 +1,5 @@
 import math
-from matplotlib.pyplot import grid
 import numpy as np
-import robot
 
 def line_through_grid(start, end, grid_size, number_x_grids, number_y_grids):
     
