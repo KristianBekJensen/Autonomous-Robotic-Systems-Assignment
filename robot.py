@@ -245,7 +245,7 @@ class Robot:
         for i in range(self.num_sensors):
             angle = self.theta + i * (2 * math.pi / self.num_sensors)
             start = (self.x, self.y)
-            max_end = (self.x + self.max_sensor_range * math.cos(angle), self.y + self.max_sensor_range * math.sin(angle))
+            max_end = (self.x + (self.max_sensor_range + self.radius) * math.cos(angle), self.y + (self.max_sensor_range + self.radius) * math.sin(angle))
 
             # find nearest wall intersection
             min_dist = self.max_sensor_range
