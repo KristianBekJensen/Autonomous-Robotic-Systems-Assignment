@@ -8,6 +8,7 @@ from maps import *
 from robot import Robot
 # Import the trajectory recorder
 from trajectory_recorder import TrajectoryRecorder
+from path_finder import *
 
 # pygame setup
 pygame.init()
@@ -249,6 +250,20 @@ while running:
 
     grid_probability = log_odds_to_prob(grid)
     grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
+
+    goal_x, goal_y = 700, 700
+    pygame.draw.circle(main_surface, 'dark cyan', (int(goal_x), int(goal_y)), 7) 
+    path = find_path(
+        grid_probability,
+        (robot.x,robot.y),
+        (goal_x,goal_y),
+        GRID_SIZE,
+        robot_radius=20,
+        safety_param=1.2,
+        occ_thresh=0.6,
+        draw=True,
+        surface=main_surface
+    )
 
     if visualize_mapping:
         # draw the grid probabilities 
