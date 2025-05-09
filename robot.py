@@ -3,6 +3,8 @@ import numpy as np
 import pygame
 import math
 import itertools
+
+from pyparsing import col
 from kinematics import differential_drive_kinematics
 from landmark import two_point_triangulate, get_landmark_measurements
 from utils import draw_covariance_ellipse
@@ -57,17 +59,32 @@ class Robot:
         new_y = self.y + state_change[1]
         new_theta = (self.theta + state_change[2]) % (2 * math.pi)
 
-        new_x, new_y = self.check_collisions(new_x, new_y, walls)
+        new_x, new_y, _ = self.check_collisions(new_x, new_y, walls)
         
         # Update state variables after collision handling
         self.x, self.y, self.theta = new_x, new_y, new_theta
         robot_pose = np.array([self.x, self.y, self.theta])
         self.true_poses.append(robot_pose)
 
+    def check_If_Collided(self, walls):
+        state_change = differential_drive_kinematics(
+            [self.x, self.y, self.theta], 
+            self.v_left, 
+            self.v_right,
+            self.axel_length
+        )
+
+        new_x = self.x + state_change[0]
+        new_y = self.y + state_change[1]
+
+        _, _, collided = self.check_collisions(new_x, new_y, walls)
+        return collided 
+
     def check_collisions(self, new_x, new_y, walls):
         """Check and resolve collisions with multiple walls"""
         # Future possible position
         test_x, test_y = new_x, new_y
+        collided = False
         
         # Check each wall for collision
         collided_walls = []
@@ -85,14 +102,15 @@ class Robot:
             # Check if colliding
             if distance < self.radius:
                 collided_walls.append((wall, closest_x, closest_y, distance))
+                collided = True
 
         # If no collided walls, move to the possible position
         if not collided_walls:
-            return test_x, test_y
+            return test_x, test_y, collided
         
         # Handle collisions and adjust the new position (x,y adjusted)
         adjusted_x, adjusted_y = self.resolve_collisions(test_x, test_y, collided_walls)
-        return adjusted_x, adjusted_y
+        return adjusted_x, adjusted_y, collided
     
     def resolve_collisions(self, test_x, test_y, collided_walls):
         """Resolve collisions with potentially multiple walls"""
