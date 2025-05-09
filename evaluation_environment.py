@@ -42,13 +42,16 @@ class MazeSolver(ScalarProblem):
         v_left, v_right = 0, 0
         r = 20 # robot radius
         axel_length = 15
+        min_speed, max_speed = 1, 3
 
         # sensor params
         max_sensor_range, num_sensors = 100, 6
         sensor_noise = 0
 
         robot = Robot(x, y, theta, r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
-
+        robot.v_left = min_speed
+        robot.v_right = min_speed
+        
         # Setup Kalman Filter
         process_noise = 0.01
         position_measurement_noise = 0.01
@@ -140,7 +143,7 @@ class MazeSolver(ScalarProblem):
             detected_landmarks = robot.detect_landmarks(landmarks, main_surface, False)
             robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
-            robot.v_left, robot.v_right = phenome_navigate(phenome, robot.sensor_values, robot.v_left, robot.v_right)
+            robot.v_left, robot.v_right = phenome_navigate(phenome, robot.sensor_values, robot.v_left, robot.v_right, min_speed, max_speed)
 
             if robot.check_If_Collided(environment_objects):
                 number_collisions += 1
