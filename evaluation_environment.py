@@ -98,7 +98,8 @@ class MazeSolver(ScalarProblem):
             n_obstacles=50,
             obstacle_mu=7.5,
             obstacle_sigma=1.5,
-            obstacle_color=(0,0,0)
+            obstacle_color=(0,0,0),
+            random_seed=42
         )
 
 

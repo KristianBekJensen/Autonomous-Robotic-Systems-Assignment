@@ -90,7 +90,8 @@ walls, landmarks, obstacles = draw_map(
     n_obstacles=50,
     obstacle_mu=7.5,
     obstacle_sigma=1.5,
-    obstacle_color=(0,0,0)
+    obstacle_color=(0,0,0),
+    random_seed=42
 )
 
 # Trajectory mode info
@@ -209,7 +210,7 @@ while running:
 
     # detect landmarks
     detected_landmarks = robot.detect_landmarks(landmarks, main_surface, draw_landmark_line)
-    robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
+    estimated_pose = robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
     # Only process user input if not in playback mode
     if not trajectory_recorder.is_replaying():
@@ -251,11 +252,12 @@ while running:
     grid_probability = log_odds_to_prob(grid)
     grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
 
+    est_x, est_y, _ = robot.estimated_pose 
     goal_x, goal_y = 700, 700
     pygame.draw.circle(main_surface, 'dark cyan', (int(goal_x), int(goal_y)), 7) 
     path = find_path(
         grid_probability,
-        (robot.x,robot.y),
+        (est_x, est_y),
         (goal_x,goal_y),
         GRID_SIZE,
         robot_radius=20,
