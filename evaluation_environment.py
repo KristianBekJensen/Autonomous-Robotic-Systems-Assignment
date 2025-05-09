@@ -14,11 +14,11 @@ from leap_ec.problem import ScalarProblem
 
 class MazeSolver(ScalarProblem):
 
-    def __init__(self):
-        super().__init__(maximize=True)
+    def __init__(self, maximize=True):
+        super().__init__(maximize=maximize)
 
     
-    def run(self, phenome):
+    def evaluate(self, phenome):
         # pygame setup
         pygame.init()
 
@@ -82,7 +82,7 @@ class MazeSolver(ScalarProblem):
 
         sensor_noise = 0
 
-        screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H))
+        screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H), pygame.HIDDEN)
         main_surface = screen.subsurface((0,0,SCREEN_W, SCREEN_H))
 
 
@@ -151,7 +151,7 @@ class MazeSolver(ScalarProblem):
 
             # Move the robot and execute collision handling
             robot.move(environment_objects)
-            robot.draw_Robot(screen)
+            
             # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
             now = pygame.time.get_ticks()
             if now - last_sample_time >= SAMPLE_INTERVAL:
@@ -172,16 +172,6 @@ class MazeSolver(ScalarProblem):
             grid_probability = log_odds_to_prob(grid)
             grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
 
-            
-
-
-            # Shows on display
-            pygame.display.flip()
-
-            clock.tick(60)
-
-        
-
         pygame.quit()
 
         collison_weight = 1
@@ -189,7 +179,3 @@ class MazeSolver(ScalarProblem):
         distance_weight = 1
 
         return fitness(number_collisions, number_time_steps, distance_to_target_value, collison_weight, time_weight, distance_weight)
-
-    def evaluate(self, phenome):
-
-        return self.run(phenome)

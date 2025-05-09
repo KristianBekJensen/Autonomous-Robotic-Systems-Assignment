@@ -13,8 +13,8 @@ from leap_ec import ops, probe
 from leap_ec.algorithm import generational_ea
 from leap_ec.binary_rep.initializers import create_binary_sequence
 from leap_ec.binary_rep.ops import mutate_bitflip
-from leap_ec.binary_rep.problems import MaxOnes, DeceptiveTrap, TwoMax
 from evaluation_environment import MazeSolver
+from leap_ec.problem import ScalarProblem
 
 # m = MazeSolver()
 # m.evaluate(np.random.randint(0, 2, size=(2**(12+1))))
@@ -23,25 +23,23 @@ from evaluation_environment import MazeSolver
 # main
 ##############################
 l = 2**(12+1)
-pop_size = 10
-generations = 100
+pop_size = 2
+generations = 500
 
-problem = MazeSolver()
-
-
-##############################
+problem = MazeSolver(False)
+#############################
 # Visualizations
-##############################
+#############################
 # Setting up some visualization probes in advance
 # Doing it here allow us to use subplots to arrange them nicely
 plt.figure(figsize=(18, 5))
 plt.subplot(131)
-p1 = probe.SumPhenotypePlotProbe(
-        xlim=(0, l),
-        ylim=(0, l),
-        problem=problem,
-        ax=plt.gca())
-plt.subplot(132)
+# p1 = probe.SumPhenotypePlotProbe(
+#         xlim=(0, l),
+#         ylim=(0, l),
+#         problem=problem,
+#         ax=plt.gca())
+# plt.subplot(132)
 p2 = probe.FitnessPlotProbe(ax=plt.gca(), xlim=(0, generations))
 plt.subplot(133)
 p3 = probe.PopulationMetricsPlotProbe(
@@ -50,9 +48,7 @@ p3 = probe.PopulationMetricsPlotProbe(
         title='Population Diversity',
         ax=plt.gca())
 plt.tight_layout()
-viz_probes = [ p1, p2, p3 ]
-
-
+viz_probes = [ p2, p3 ] #p1
 
 ##############################
 # Run!
