@@ -51,4 +51,4 @@ def real_to_binary(value, number_of_discrete_values, min_value, max_value):
 
     return int_to_binary(index, number_of_discrete_values)
 
-print(real_to_binary(1.24, 16, 0, 20))
+# print(real_to_binary(1.24, 16, 0, 20))

@@ -3,7 +3,7 @@ import pygame
 import numpy as np
 import matplotlib.pyplot as plt
 from mapping import calculate_mapping_accuracy, get_observed_cells, log_odds_to_prob, probs_to_grey_scale
-from navigate import navigate
+from navigate import navigate, phenome_navigate
 from kalman_filter import KalmanFilter
 from maps import *
 from robot import Robot
@@ -28,7 +28,7 @@ class MazeSolver(ScalarProblem):
         # Evaluation metrics 
         number_collisions = 0
         number_time_steps = 0
-        max_time_steps = 10000
+        max_time_steps = 200
         distance_to_target_value = 0
         target_position = [500, 500]
 
@@ -44,7 +44,7 @@ class MazeSolver(ScalarProblem):
         axel_length = 15
 
         # sensor params
-        max_sensor_range, num_sensors = 100, 48
+        max_sensor_range, num_sensors = 100, 6
         sensor_noise = 0
 
         robot = Robot(x, y, theta, r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
@@ -139,18 +139,18 @@ class MazeSolver(ScalarProblem):
             detected_landmarks = robot.detect_landmarks(landmarks, main_surface, False)
             robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
-            
+            robot.v_left, robot.v_right = phenome_navigate(phenome, robot.sensor_values, robot.v_left, robot.v_right)
 
             if robot.check_If_Collided(environment_objects):
                 number_collisions += 1
-            print("Collisions: ", number_collisions)
-            print("Time Steps: ", number_time_steps)
+            # print("Collisions: ", number_collisions)
+            # print("Time Steps: ", number_time_steps)
             distance_to_target_value = distance_to_target([robot.x, robot.y], target_position)
-            print("Distance to Target Value: ", distance_to_target_value)
+            # print("Distance to Target Value: ", distance_to_target_value)
 
             # Move the robot and execute collision handling
             robot.move(environment_objects)
-
+            robot.draw_Robot(screen)
             # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
             now = pygame.time.get_ticks()
             if now - last_sample_time >= SAMPLE_INTERVAL:
