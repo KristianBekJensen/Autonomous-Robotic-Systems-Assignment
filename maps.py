@@ -2,10 +2,6 @@ import pygame
 import random
 import numpy as np
 
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
-
 def clamp(value, minimum, maximum):
     return max(minimum, min(value, maximum))
 
@@ -19,8 +15,13 @@ def draw_map(screen, num_blocks_w, num_blocks_h,
     n_obstacles=100,
     obstacle_mu=7.5,
     obstacle_sigma=1.5,
-    obstacle_color=(0,0,0)
+    obstacle_color=(0,0,0),
+    random_seed=42,
 ):
+
+    random.seed(random_seed)
+    np.random.seed(random_seed)
+    
     screen_w, screen_h = screen.get_size()
     map_w = screen_w - 2 * pad
     map_h = screen_h - 2 * pad
