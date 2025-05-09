@@ -141,3 +141,25 @@ class TrajectoryRecorder:
     def is_replaying(self):
         """Check if replay is active"""
         return self.replaying
+    
+def save_pop(filename, object):
+    try:
+        with open("populations/" + filename, 'wb') as f:
+            pickle.dump(object, f)
+        print(f"Trajectory saved to {filename}")
+        
+    except Exception as e:
+        print(f"Error saving trajectory: {e}")
+
+def load_pop(filename):
+    """Load a trajectory from a file"""
+    if not os.path.exists("populations/" + filename):
+        print(f"File {filename} not found")
+        
+    try:
+        with open(filename, 'rb') as f:
+            return pickle.load(f)
+        print(f"Loaded trajectory with  waypoints from {filename}")
+        
+    except Exception as e:
+        print(f"Error loading trajectory: {e}")

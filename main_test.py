@@ -18,8 +18,7 @@ from leap_ec.binary_rep.ops import mutate_bitflip
 from evaluation_environment import MazeSolver
 from leap_ec.problem import ScalarProblem
 
-from saveManager import load, save
-import trajectory_recorder
+from trajectory_recorder import load_pop, save_pop
 
 # m = MazeSolver()
 # m.evaluate(np.random.randint(0, 2, size=(2**(12+1))))
@@ -81,5 +80,5 @@ if os.environ.get(test_env_var, False) != 'True':
 plt.close('all')
 
 filename = "final_poppulation.pkl"
-save(filename, final_pop)
-print("Best Individual in final pop: ", max(load(filename)))
+save_pop(filename, final_pop)
+print("Best Individual in final pop: ", max(load_pop(filename)))
