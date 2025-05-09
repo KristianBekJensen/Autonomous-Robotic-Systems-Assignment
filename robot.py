@@ -26,6 +26,8 @@ class Robot:
         self.x = x
         self.y = y
         self.theta = theta  # radians
+        self.true_pose = (x, y, theta)
+        self.estimated_pose = (x, y, theta)
         
         # Physical attributes
         self.radius = radius
@@ -200,8 +202,11 @@ class Robot:
                 avg_y = sum(pt[1] for pt in zs) / len(zs)
                 z = [avg_x, avg_y, avg_theta/len(zs)]
                 estimated_pose, sigma = kf.update(z)
-            
+        
+        self.estimated_pose = estimated_pose 
         self.estimated_poses.append(estimated_pose)
+
+        return estimated_pose
     
     def draw_Robot(self, screen):
         # Draw the robot and its direction line
