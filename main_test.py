@@ -2,7 +2,9 @@
 representation and visualization probes while solving problems in the
 broader OneMax family.
 """
+from fileinput import filename
 import os
+import pickle
 import sys
 import numpy as np
 
@@ -16,6 +18,9 @@ from leap_ec.binary_rep.ops import mutate_bitflip
 from evaluation_environment import MazeSolver
 from leap_ec.problem import ScalarProblem
 
+from saveManager import load, save
+import trajectory_recorder
+
 # m = MazeSolver()
 # m.evaluate(np.random.randint(0, 2, size=(2**(12+1))))
 
@@ -24,7 +29,7 @@ from leap_ec.problem import ScalarProblem
 ##############################
 l = 2**(12+1)
 pop_size = 2
-generations = 500
+generations = 3
 
 problem = MazeSolver(False)
 #############################
@@ -32,23 +37,17 @@ problem = MazeSolver(False)
 #############################
 # Setting up some visualization probes in advance
 # Doing it here allow us to use subplots to arrange them nicely
-plt.figure(figsize=(18, 5))
-plt.subplot(131)
-# p1 = probe.SumPhenotypePlotProbe(
-#         xlim=(0, l),
-#         ylim=(0, l),
-#         problem=problem,
-#         ax=plt.gca())
-# plt.subplot(132)
-p2 = probe.FitnessPlotProbe(ax=plt.gca(), xlim=(0, generations))
-plt.subplot(133)
-p3 = probe.PopulationMetricsPlotProbe(
+plt.figure(figsize=(15, 5))
+plt.subplot(121)
+p1 = probe.FitnessPlotProbe(ax=plt.gca(), xlim=(0, generations))
+plt.subplot(122)
+p2 = probe.PopulationMetricsPlotProbe(
         metrics=[ probe.pairwise_squared_distance_metric ],
         xlim=(0, generations),
         title='Population Diversity',
         ax=plt.gca())
 plt.tight_layout()
-viz_probes = [ p2, p3 ] #p1
+viz_probes = [p1, p2]
 
 ##############################
 # Run!
@@ -78,5 +77,9 @@ final_pop = generational_ea(max_generations=generations,pop_size=pop_size,
 # If we're not in test-harness mode, block until the user closes the app
 if os.environ.get(test_env_var, False) != 'True':
     plt.show()
-    
+
 plt.close('all')
+
+filename = "final_poppulation.pkl"
+save(filename, final_pop)
+print("Best Individual in final pop: ", max(load(filename)))
