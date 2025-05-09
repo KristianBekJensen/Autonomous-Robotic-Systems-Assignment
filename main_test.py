@@ -15,14 +15,10 @@ from leap_ec import ops, probe
 from leap_ec.algorithm import generational_ea
 from leap_ec.binary_rep.initializers import create_binary_sequence
 from leap_ec.binary_rep.ops import mutate_bitflip
-from evaluation_environment import MazeSolver
+from MazeSolver import MazeSolver
 from leap_ec.problem import ScalarProblem
 
 from trajectory_recorder import load_pop, save_pop
-
-# m = MazeSolver()
-# m.evaluate(np.random.randint(0, 2, size=(2**(12+1))))
-
 ##############################
 # main
 ##############################

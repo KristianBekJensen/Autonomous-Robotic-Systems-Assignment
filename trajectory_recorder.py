@@ -157,7 +157,7 @@ def load_pop(filename):
         print(f"File {filename} not found")
         
     try:
-        with open(filename, 'rb') as f:
+        with open("populations/" + filename, 'rb') as f:
             return pickle.load(f)
         print(f"Loaded trajectory with  waypoints from {filename}")
         
