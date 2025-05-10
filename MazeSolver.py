@@ -1,3 +1,4 @@
+from math import atan2
 from matplotlib.pylab import number
 import pygame
 import numpy as np
@@ -6,6 +7,7 @@ from mapping import calculate_mapping_accuracy, get_observed_cells, log_odds_to_
 from navigate import navigate, phenome_navigate
 from kalman_filter import KalmanFilter
 from maps import *
+from path_finder import find_path
 from robot import Robot
 # Import the trajectory recorder
 from trajectory_recorder import TrajectoryRecorder
@@ -14,7 +16,11 @@ from leap_ec.problem import ScalarProblem
 
 class MazeSolver(ScalarProblem):
 
-    def __init__(self, maximize=True):
+    def __init__(self, maximize, visualization, num_sensors, wheel_inputs, angle_inputs):
+        self.visualize_evaluation = visualization
+        self.num_sensors = num_sensors
+        self.wheel_inputs = wheel_inputs
+        self.angle_inputs = angle_inputs
         super().__init__(maximize=maximize)
 
     
@@ -30,9 +36,7 @@ class MazeSolver(ScalarProblem):
         number_time_steps = 0
         max_time_steps = 200
         distance_to_target_value = 0
-        target_position = [500, 500]
-
-        visualize_evaluation = False
+        target_x, target_y = 700, 700
 
 
         #set up display 
@@ -47,10 +51,10 @@ class MazeSolver(ScalarProblem):
         min_speed, max_speed = 1, 3
 
         # sensor params
-        max_sensor_range, num_sensors = 100, 6
+        max_sensor_range = 100
         sensor_noise = 0
 
-        robot = Robot(x, y, theta, r, axel_length, max_sensor_range, num_sensors) # rn generic parameters match above, apply changes if needed 
+        robot = Robot(x, y, theta, r, axel_length, max_sensor_range, self.num_sensors) # rn generic parameters match above, apply changes if needed 
         robot.v_left = min_speed
         robot.v_right = min_speed
         
@@ -87,7 +91,7 @@ class MazeSolver(ScalarProblem):
 
         sensor_noise = 0
 
-        if visualize_evaluation:
+        if self.visualize_evaluation:
             screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H))
         else:
             screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H), pygame.HIDDEN)
@@ -129,7 +133,7 @@ class MazeSolver(ScalarProblem):
             # reset screen
             main_surface.fill((255,255,255))
 
-            if visualize_evaluation:  
+            if self.visualize_evaluation:  
                 # re-draw the static map each frame
                 for w in walls:
                     pygame.draw.rect(main_surface, (0,0,0), w)
@@ -140,7 +144,7 @@ class MazeSolver(ScalarProblem):
                 
                 robot.draw_Robot(main_surface)
 
-                pygame.draw.circle(main_surface, (255, 0, 0), target_position, 10)
+                pygame.draw.circle(main_surface, (255, 0, 0), [target_x, target_y], 10)
             
 
             environment_objects = walls + obstacles
@@ -148,15 +152,52 @@ class MazeSolver(ScalarProblem):
 
             # detect landmarks
             detected_landmarks = robot.detect_landmarks(landmarks, main_surface, False)
+            
+            # Get Estimated Map
+            free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, grid.shape[0], grid.shape[1])
+            
+            for free in free_cells:
+                grid[free[0]][free[1]] += -0.85 / ((kf.sigma[0][0]*10)+1)
+            for occ in occipied_cells:
+                grid[occ[0]][occ[1]] += 2.2 / ((kf.sigma[0][0]*10)+1)
+
+
+            grid_probability = log_odds_to_prob(grid)
+            grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
+
+
+            # Find Path to Target with Estimated map
+            est_x, est_y, _ = robot.estimated_pose 
+            if self.visualize_evaluation:
+                pygame.draw.circle(main_surface, 'dark cyan', (int(target_x), int(target_y)), 7) 
+            path = find_path(
+                grid_probability,
+                (est_x, est_y),
+                (target_x, target_y),
+                GRID_SIZE,
+                robot_radius=20,
+                safety_param=1.2,
+                occ_thresh=0.6,
+                draw=self.visualize_evaluation,
+                surface=main_surface
+            )
+
+            if path:
+                phi = atan2(path[4][1] - est_y, path[4][0] - est_x) - robot.theta
+                # Normalize angle to [0, 2pi]
+                phi = (phi + np.pi) % (2 * np.pi)
+                # 3-6 left of
+                # 0-3 right of
+
             robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
-            robot.v_left, robot.v_right = phenome_navigate(phenome, robot.sensor_values, robot.v_left, robot.v_right, min_speed, max_speed)
+            robot.v_left, robot.v_right = phenome_navigate(phenome, robot.sensor_values, robot.v_left, robot.v_right, min_speed, max_speed, phi, self.wheel_inputs, self.angle_inputs)
 
             if robot.check_If_Collided(environment_objects):
                 number_collisions += 1
             # print("Collisions: ", number_collisions)
             # print("Time Steps: ", number_time_steps)
-            distance_to_target_value = distance_to_target([robot.x, robot.y], target_position)
+            distance_to_target_value = distance_to_target([robot.x, robot.y], [target_x, target_y])
             # print("Distance to Target Value: ", distance_to_target_value)
 
             # Move the robot and execute collision handling
@@ -170,24 +211,13 @@ class MazeSolver(ScalarProblem):
                 cov  = kf.sigma[:2, :2].copy()  # only the x–y block
                 robot.uncertainty_regions.append((mean, cov))
                 last_sample_time = now
-            
-            free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, grid.shape[0], grid.shape[1])
-            
-            for free in free_cells:
-                grid[free[0]][free[1]] += -0.85 / ((kf.sigma[0][0]*10)+1)
-            for occ in occipied_cells:
-                grid[occ[0]][occ[1]] += 2.2 / ((kf.sigma[0][0]*10)+1)
 
-
-            grid_probability = log_odds_to_prob(grid)
-            grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
-
-            if visualize_evaluation:
+            if self.visualize_evaluation:
                 pygame.display.flip()
 
         pygame.quit()
 
-        collison_weight = 1
+        collison_weight = 100
         time_weight = 1
         distance_weight = 1
 

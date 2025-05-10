@@ -19,11 +19,17 @@ from trajectory_recorder import load_pop, save_pop
 ##############################
 # main
 ##############################
-l = 2**(12+1)
-pop_size = 2
-generations = 3
+action_bits = 2
+num_sensors = 6
+wheel_inputs = 6
+angle_inputs = 2
+l = (2**(num_sensors + wheel_inputs + angle_inputs)) * action_bits
+pop_size = 5
+generations = 5
 
-problem = MazeSolver(False)
+problem = MazeSolver(False, False, num_sensors, wheel_inputs, angle_inputs)
+
+
 #############################
 # Visualizations
 #############################
@@ -58,7 +64,7 @@ final_pop = generational_ea(max_generations=generations,pop_size=pop_size,
                              # Apply binomial mutation: this is a lot like
                              # additive Gaussian mutation, but adds an integer
                              # value to each gene
-                             mutate_bitflip(expected_num_mutations=10),
+                             mutate_bitflip(expected_num_mutations=500),
                              ops.evaluate,
                              ops.pool(size=pop_size),
                              # Collect fitness statistics to stdout

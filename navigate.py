@@ -1,4 +1,4 @@
-import numpy
+import numpy as np
 import pygame
 
 from fitness import fitness, real_to_binary
@@ -36,7 +36,7 @@ def navigate(keys, v_left, v_right):
             v_right = v_left
     return v_left, v_right
 
-def phenome_navigate(phenome, sensor_vals, v_left, v_right, min_speed, max_speed):
+def phenome_navigate(phenome, sensor_vals, v_left, v_right, min_speed, max_speed, angle_to_path, wheel_inputs, angle_inputs):
     sensor_threshold = 50
     
     strBits = ""
@@ -45,15 +45,17 @@ def phenome_navigate(phenome, sensor_vals, v_left, v_right, min_speed, max_speed
             strBits += "1"
         else:
             strBits += "0"
-    strBits += real_to_binary(v_left, 8, min_speed, max_speed)
-    strBits += real_to_binary(v_right, 8, min_speed, max_speed)
+    single_wheel_inputs = int(2**(wheel_inputs/2))
+    strBits += real_to_binary(v_left, single_wheel_inputs, min_speed, max_speed)
+    strBits += real_to_binary(v_right, single_wheel_inputs, min_speed, max_speed)
+    strBits += real_to_binary(angle_to_path, 2**angle_inputs, 0 , np.pi * 2)
     
     #Convert from bits to Interger
     bits = []
     for bit in strBits:
         bits.append(int(bit))
     d = BinaryToIntDecoder(len(bits))
-    key = d.decode(numpy.array(bits))[0]
+    key = d.decode(np.array(bits))[0]
     
     #Find location of genome instructions. * 2 because each intstruction is 2 bits
     key = (phenome[key * 2], phenome[(key * 2) + 1])
@@ -75,4 +77,4 @@ def phenome_navigate(phenome, sensor_vals, v_left, v_right, min_speed, max_speed
     else:
         print("Something went terrebly wrong")
 
-    return numpy.median([min_speed, v_left, max_speed]), numpy.median([min_speed, v_right, max_speed])
+    return np.median([min_speed, v_left, max_speed]), np.median([min_speed, v_right, max_speed])
