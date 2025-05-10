@@ -32,6 +32,8 @@ class MazeSolver(ScalarProblem):
         distance_to_target_value = 0
         target_position = [500, 500]
 
+        visualize_evaluation = False
+
 
         #set up display 
         clock = pygame.time.Clock()
@@ -85,7 +87,10 @@ class MazeSolver(ScalarProblem):
 
         sensor_noise = 0
 
-        screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H), pygame.HIDDEN)
+        if visualize_evaluation:
+            screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H))
+        else:
+            screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H), pygame.HIDDEN)
         main_surface = screen.subsurface((0,0,SCREEN_W, SCREEN_H))
 
 
@@ -98,7 +103,7 @@ class MazeSolver(ScalarProblem):
             wall_v_prob=0.2,
             wall_thickness=WALL_THICKNESS,
             p_landmark=0.25,
-            n_obstacles=50,
+            n_obstacles=0,
             obstacle_mu=7.5,
             obstacle_sigma=1.5,
             obstacle_color=(0,0,0),
@@ -124,17 +129,19 @@ class MazeSolver(ScalarProblem):
             # reset screen
             main_surface.fill((255,255,255))
 
+            if visualize_evaluation:  
+                # re-draw the static map each frame
+                for w in walls:
+                    pygame.draw.rect(main_surface, (0,0,0), w)
+                for o in obstacles:
+                    pygame.draw.rect(main_surface, (0,0,0), o)
+                for (i, m_x, m_y) in landmarks:
+                    pygame.draw.circle(main_surface, "blue", (m_x,m_y), 5) 
                 
-            """ # re-draw the static map each frame
-            for w in walls:
-                pygame.draw.rect(main_surface, (0,0,0), w)
-            for o in obstacles:
-                pygame.draw.rect(main_surface, (0,0,0), o)
-            for (i, m_x, m_y) in landmarks:
-                pygame.draw.circle(main_surface, "blue", (m_x,m_y), 5) 
+                robot.draw_Robot(main_surface)
+
+                pygame.draw.circle(main_surface, (255, 0, 0), target_position, 10)
             
-            robot.draw_Robot(main_surface)
-            """
 
             environment_objects = walls + obstacles
             robot.sense(environment_objects, main_surface, False, sensor_noise)
@@ -174,6 +181,9 @@ class MazeSolver(ScalarProblem):
 
             grid_probability = log_odds_to_prob(grid)
             grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
+
+            if visualize_evaluation:
+                pygame.display.flip()
 
         pygame.quit()
 
