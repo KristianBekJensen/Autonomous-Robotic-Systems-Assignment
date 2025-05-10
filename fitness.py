@@ -1,8 +1,7 @@
 import math
-
 from numpy import log2, number
 
-
+# fitness function to evaluate phenome and control evolutionary algorithm
 def fitness (number_collision, number_time_steps, distance_to_target, collision_weight, time_weight, distance_weight):
     
     # Calculate the fitness score
@@ -14,6 +13,7 @@ def fitness (number_collision, number_time_steps, distance_to_target, collision_
 
     return fitness_score
 
+# calculate euclidean distance from robot's real postion to target position
 def distance_to_target (target, position):
     """
     Calculate the euclidean distance to the target.
@@ -21,6 +21,7 @@ def distance_to_target (target, position):
     distance = ((target[0] - position[0]) ** 2 + (target[1] - position[1]) ** 2) ** 0.5
     return distance
 
+# discretize sensor value into a given number of discrete values within a range
 def real_to_binary(value, number_of_discrete_values, min_value, max_value):
    
     index = 0
@@ -51,4 +52,3 @@ def real_to_binary(value, number_of_discrete_values, min_value, max_value):
 
     return int_to_binary(index, number_of_discrete_values)
 
-# print(real_to_binary(1.24, 16, 0, 20))
