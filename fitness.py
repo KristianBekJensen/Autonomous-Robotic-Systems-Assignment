@@ -2,8 +2,10 @@ import math
 from numpy import log2, number
 
 # fitness function to evaluate phenome and control evolutionary algorithm
-def fitness (number_collision, number_time_steps, distance_to_target, collision_weight, time_weight, distance_weight):
-    
+def fitness (number_collision, number_time_steps, distance_to_target):
+    collision_weight = 100
+    time_weight = 1
+    distance_weight = 1
     # Calculate the fitness score
     fitness_score = (
         collision_weight * number_collision +

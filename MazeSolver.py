@@ -165,6 +165,7 @@ class MazeSolver(ScalarProblem):
             grid_probability = log_odds_to_prob(grid)
             grid_probability_grey_scale = probs_to_grey_scale(grid_probability)
 
+            robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
             # Find Path to Target with Estimated map
             est_x, est_y, _ = robot.estimated_pose 
@@ -189,7 +190,6 @@ class MazeSolver(ScalarProblem):
                 # 3-6 left of
                 # 0-3 right of
 
-            robot.estimate_pose(kf, landmarks, detected_landmarks, main_surface, position_measurement_noise, theta_mesurement_noise, process_noise)
 
             robot.v_left, robot.v_right = phenome_navigate(phenome, robot.sensor_values, robot.v_left, robot.v_right, min_speed, max_speed, phi, self.wheel_inputs, self.angle_inputs)
 
@@ -217,8 +217,6 @@ class MazeSolver(ScalarProblem):
 
         pygame.quit()
 
-        collison_weight = 100
-        time_weight = 1
-        distance_weight = 1
+        
 
-        return fitness(number_collisions, number_time_steps, distance_to_target_value, collison_weight, time_weight, distance_weight)
+        return fitness(number_collisions, number_time_steps, distance_to_target_value)

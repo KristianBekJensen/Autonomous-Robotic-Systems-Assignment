@@ -55,24 +55,24 @@ def phenome_navigate(phenome, sensor_vals, v_left, v_right, min_speed, max_speed
     for bit in strBits:
         bits.append(int(bit))
     d = BinaryToIntDecoder(len(bits))
-    key = d.decode(np.array(bits))[0]
+    index_of_action = d.decode(np.array(bits))[0]
     
     #Find location of genome instructions. * 2 because each intstruction is 2 bits
-    key = (phenome[key * 2], phenome[(key * 2) + 1])
+    index_of_action = (phenome[index_of_action * 2], phenome[(index_of_action * 2) + 1])
     # Excute instruction either accelrate, decellarate, turn left or turn right
-    if key == (False, True):
+    if index_of_action == (False, True):
         if v_left != v_right:
             v_right = max(v_right, v_left)
             v_left = max(v_right, v_left)
         else:
             v_right += 0.2
             v_left += 0.2
-    elif key == (False, False):
+    elif index_of_action == (False, False):
             v_left = max(1, v_left - 0.2)
             v_right = max(1, v_right - 0.2)
-    elif key == (True, False):
+    elif index_of_action == (True, False):
             v_right *= 0.98
-    elif key == (True, True):
+    elif index_of_action == (True, True):
             v_left *= 0.98
     else:
         print("Something went terrebly wrong")

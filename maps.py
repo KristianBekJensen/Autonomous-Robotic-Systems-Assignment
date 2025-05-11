@@ -19,8 +19,8 @@ def draw_map(screen, num_blocks_w, num_blocks_h,
     random_seed=42,
 ):
 
-    #random.seed(random_seed)
-    #np.random.seed(random_seed)
+    random.seed(random_seed)
+    np.random.seed(random_seed)
     
     screen_w, screen_h = screen.get_size()
     map_w = screen_w - 2 * pad

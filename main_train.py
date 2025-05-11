@@ -16,8 +16,8 @@ from leap_ec.binary_rep.ops import mutate_bitflip
 from MazeSolver import MazeSolver
 
 from trajectory_recorder import load_pop, save_pop
-##############################
-# main
+# ##############################
+# # main
 ##############################
 action_bits = 2
 num_sensors = 6
@@ -81,3 +81,7 @@ plt.close('all')
 filename = "final_poppulation.pkl"
 save_pop(filename, final_pop)
 print("Best Individual in final pop: ", max(load_pop(filename)))
+
+# Show best perfromance
+problem = MazeSolver(False, True, num_sensors, wheel_inputs, angle_inputs)
+problem.evaluate(max(load_pop(filename)).phenome)
