@@ -34,7 +34,9 @@ class MazeSolver(ScalarProblem):
         # Evaluation metrics 
         number_collisions = 0
         number_time_steps = 0
-        max_time_steps = 200
+        # max_time_steps = 200
+        # if we’re just watching, let it run until we close the window
+        max_time_steps = float('inf') if self.visualize_evaluation else 200
         distance_to_target_value = 0
         target_x, target_y = 700, 700
 
@@ -123,6 +125,8 @@ class MazeSolver(ScalarProblem):
         running = True
         while running:
             current_time = pygame.time.get_ticks()
+            
+            pygame.event.pump() # keep the window responsive
 
             number_time_steps += 1
 
@@ -214,9 +218,24 @@ class MazeSolver(ScalarProblem):
 
             if self.visualize_evaluation:
                 pygame.display.flip()
+                clock.tick(60) # cap at 60 FPS
 
-        pygame.quit()
+        # compute the score
+        score = fitness(number_collisions,
+                        number_time_steps,
+                        distance_to_target_value)
 
-        
+        # if we were visualizing, wait here until the user closes the window
+        if self.visualize_evaluation:
+            done = False
+            while not done:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        done = True
+                # throttle the loop so we don't spin CPU at 100%
+                pygame.time.wait(100)
+            pygame.quit()
+        else:
+            pygame.quit()
 
-        return fitness(number_collisions, number_time_steps, distance_to_target_value)
+        return score
