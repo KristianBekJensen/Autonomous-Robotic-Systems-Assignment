@@ -141,8 +141,8 @@ class TrajectoryRecorder:
     def is_replaying(self):
         """Check if replay is active"""
         return self.replaying
-    
-def save_pop(filename, object):
+
+def save_pop(object, filename):
     try:
         with open("populations/" + filename, 'wb') as f:
             pickle.dump(object, f)

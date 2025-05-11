@@ -14,6 +14,7 @@ from leap_ec.algorithm import generational_ea
 from leap_ec.binary_rep.initializers import create_binary_sequence
 from leap_ec.binary_rep.ops import mutate_bitflip
 from MazeSolver import MazeSolver
+from leap_ec.util import wrap_curry
 
 from trajectory_recorder import load_pop, save_pop
 # ##############################
@@ -24,10 +25,15 @@ num_sensors = 6
 wheel_inputs = 6
 angle_inputs = 2
 l = (2**(num_sensors + wheel_inputs + angle_inputs)) * action_bits
-pop_size = 5
+pop_size = 1
 generations = 5
 
 problem = MazeSolver(False, False, num_sensors, wheel_inputs, angle_inputs)
+
+@wrap_curry
+def save(pop, filename):
+    save_pop(pop, filename)
+    return pop
 
 
 #############################
@@ -67,6 +73,7 @@ final_pop = generational_ea(max_generations=generations,pop_size=pop_size,
                              mutate_bitflip(expected_num_mutations=500),
                              ops.evaluate,
                              ops.pool(size=pop_size),
+                             save(filename="current_poppulation.pkl"),
                              # Collect fitness statistics to stdout
                              probe.FitnessStatsCSVProbe(stream=sys.stdout),
                              *viz_probes  # Inserting the additional probes we defined above
