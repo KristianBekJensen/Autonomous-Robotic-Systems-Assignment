@@ -5,6 +5,7 @@ broader OneMax family.
 from fileinput import filename
 import os
 import sys
+from typing import final
 
 from matplotlib import pyplot as plt
 
@@ -85,8 +86,8 @@ if os.environ.get(test_env_var, False) != 'True':
 
 plt.close('all')
 
-filename = "final_poppulation.pkl"
-save_pop(filename, final_pop)
+filename = "final_population.pkl"
+save_pop(final_pop, filename)
 print("Best Individual in final pop: ", max(load_pop(filename)))
 
 # Show best perfromance
