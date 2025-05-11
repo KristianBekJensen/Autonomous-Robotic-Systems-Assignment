@@ -73,7 +73,7 @@ final_pop = generational_ea(max_generations=generations,pop_size=pop_size,
                              mutate_bitflip(expected_num_mutations=500),
                              ops.evaluate,
                              ops.pool(size=pop_size),
-                             save(filename="current_poppulation.pkl"),
+                             save(filename="current_population.pkl"),
                              # Collect fitness statistics to stdout
                              probe.FitnessStatsCSVProbe(stream=sys.stdout),
                              *viz_probes  # Inserting the additional probes we defined above

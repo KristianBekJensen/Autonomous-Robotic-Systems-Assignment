@@ -144,6 +144,7 @@ class TrajectoryRecorder:
 
 def save_pop(object, filename):
     try:
+        os.makedirs("populations", exist_ok=True)  # Ensure directory exists
         with open("populations/" + filename, 'wb') as f:
             pickle.dump(object, f)
         print(f"Trajectory saved to {filename}")
