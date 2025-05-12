@@ -1,5 +1,6 @@
 # evolution_nn.py
 
+from json import load
 import os
 import sys
 import numpy as np
@@ -33,8 +34,8 @@ genome_length = (
     + output_size                 # b2
 )
 
-pop_size    = 30
-generations = 20
+pop_size    = 5
+generations = 5
 
 
 # ───────────────────────────
@@ -45,17 +46,53 @@ problem = MazeSolver(
     visualization=False,
     num_sensors=num_sensors
 )
+# if true load (sample) from previous population ; if false, random
+load_old_pop = False
+
+# ───────────────────────────
+# Initializer: Load from previous population
+# ───────────────────────────
+def init_genome_from_file():
+    """
+    Load genomes from previous final population file.
+    If fewer than pop_size individuals are present, sample with replacement.
+    """
+    filename = "final_nn_pop.pkl"
+    prev_pop = load_pop(filename)
+
+    print(prev_pop)
+
+    if len(prev_pop) < pop_size:
+        chosen = np.random.choice(prev_pop, size=pop_size, replace=True)
+    else:
+        chosen = np.random.choice(prev_pop, size=pop_size, replace=False)
+
+    # Return one genome at a time (LEAP will call this repeatedly)
+    for ind in chosen:
+        yield ind.genome
+
+
+# Create an iterator of genomes
+genome_iterator = init_genome_from_file()
+
+def init_genome():
+    if load_old_pop:
+        return next(genome_iterator)
+    else:
+        # Return one genome at a time (LEAP will call this repeatedly)
+        return np.random.uniform(-1.0, 1.0, size=genome_length)
 
 
 # ───────────────────────────
 # A float‐vector initializer
 # ───────────────────────────
-def init_genome():
-    """
+""" def init_genome():
+    
     Return *one* genome (a NumPy array of length genome_length),
     uniformly sampled from [-1,1].  LEAP will call this pop_size times.
-    """
-    return np.random.uniform(-1.0, 1.0, size=genome_length)
+    
+    return np.random.uniform(-1.0, 1.0, size=genome_length) 
+"""
 
 # ───────────────────────────
 # A Gaussian‐mutation operator
