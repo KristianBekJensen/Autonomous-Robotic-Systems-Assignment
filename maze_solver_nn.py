@@ -3,7 +3,7 @@ import numpy as np
 import pygame
 
 from leap_ec.problem import ScalarProblem
-from fitness import distance_to_target, fitness
+from fitness_nn import distance_to_target, fitness
 from mapping import *
 from path_finder import find_path
 from robot import Robot
@@ -49,7 +49,7 @@ class NeuralController:
 
 class MazeSolver(ScalarProblem):
     """
-    Black-box MAZE solver.  The 'phenome' is a real vector of NN weights.
+    'phenome' is a real vector of NN weights used to control the robot.
     """
 
     def __init__(self,
@@ -62,8 +62,8 @@ class MazeSolver(ScalarProblem):
         self.visualize_evaluation = visualization
         self.num_sensors = num_sensors
 
-        # new continuous controller: sensors + 2 wheel speeds + 1 heading error
-        self.input_size = self.num_sensors + 2 + 1
+        # new continuous controller: sensors + 2 wheel speeds + 1 distance to target + 1 angle to target
+        self.input_size = self.num_sensors + 2 + 1 + 1
         self.hidden_size = 5
         self.output_size = 2
 
@@ -83,7 +83,7 @@ class MazeSolver(ScalarProblem):
         # Metrics
         collisions = 0
         steps      = 0
-        max_steps  = float('inf') if self.visualize_evaluation else 200
+        max_steps  = float('inf') if self.visualize_evaluation else 400
         target_x, target_y = 500, 500
 
         # Robot initial pose
@@ -123,10 +123,13 @@ class MazeSolver(ScalarProblem):
 
         walls, landmarks, obstacles = draw_map(
             main_surf, num_blocks_w=NBW, num_blocks_h=NBH,
-            pad=PAD, wall_thickness=4, n_obstacles=0, random_seed=44
+            pad=PAD, wall_thickness=4, n_obstacles=0, random_seed=44, p_landmark=1.0
         )
 
         pygame.display.flip()
+
+        
+
 
         # --- Simulation loop ---
         running = True
@@ -191,6 +194,16 @@ class MazeSolver(ScalarProblem):
             # else:
             #     phi = 0.0
 
+            # calculate the distance to target
+            d_to_target_from_estimate = distance_to_target((kf.mu[0], kf.mu[1]),(target_x,target_y))
+
+            # angle to target
+            dx = target_x - robot.x
+            dy = target_y - robot.y
+            phi = (math.atan2(dy, dx) - robot.theta) % (2*math.pi)
+            phi = ((phi + np.pi) % (2 * np.pi)) - np.pi
+           
+
             # --- NEW: controller step ---
             # build input vector ∈ ℝ^input_size
             inp = np.zeros(self.input_size, dtype=float)
@@ -201,9 +214,10 @@ class MazeSolver(ScalarProblem):
             inp[self.num_sensors + 1] = (robot.v_right - min_speed)/(max_speed-min_speed)
             # normalize angle error
             
-            # inp[self.num_sensors + 2] = phi/(2*math.pi)
-            ## TODO:
-            inp[self.num_sensors + 2] = 0 # change to distance from target
+            # distance and angle to target from our estimated position 
+            inp[self.num_sensors + 2] = d_to_target_from_estimate
+            inp[self.num_sensors + 3] = phi
+
 
 
             out = controller.forward(inp)   # 2 outputs in [−1,1]
@@ -215,6 +229,8 @@ class MazeSolver(ScalarProblem):
             if robot.check_If_Collided(walls+obstacles):
                 collisions += 1
             dist = distance_to_target((robot.x,robot.y),(target_x,target_y))
+            if dist < robot.radius:
+                break
             robot.move(walls+obstacles)
 
             if self.visualize_evaluation:
@@ -224,9 +240,21 @@ class MazeSolver(ScalarProblem):
         # shutdown
         pygame.quit()
 
+        
+
         # final score
-        return fitness(
-            num_collision=collisions,
+        """ return fitness(
+            num_collisions=collisions,
             num_time_steps=steps,
-            dist_to_target=dist
+            dist_to_target=dist,
+            target_reached=target_reached,
+            max_time_steps=max_steps,
+        ) """
+        return fitness(
+            num_collisions=collisions,
+            num_time_steps=steps,
+            dist_to_target=dist,
+            collision_weight=1.0,
+            time_weight=0.0,
+            dist_weight=1.0
         )

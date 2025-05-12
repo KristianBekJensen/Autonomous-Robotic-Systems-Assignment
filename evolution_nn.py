@@ -22,7 +22,7 @@ num_sensors = 6
 
 # MLP dimensions (must match maze_solver.py)
 input_size   = num_sensors + 2 + 1
-hidden_size  = 5
+hidden_size  = 10
 output_size  = 2
 
 # calculate total genome length:
@@ -33,8 +33,8 @@ genome_length = (
     + output_size                 # b2
 )
 
-pop_size    = 10
-generations = 5
+pop_size    = 30
+generations = 20
 
 
 # ───────────────────────────
@@ -110,7 +110,7 @@ def save(pop, filename):
 # ───────────────────────────
 # Live plotting setup
 # ───────────────────────────
-plt.ion()
+""" plt.ion()
 fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(14,5))
 p1 = probe.FitnessPlotProbe(ax=ax1, xlim=(0, generations))
 p2 = probe.PopulationMetricsPlotProbe(
@@ -120,7 +120,7 @@ p2 = probe.PopulationMetricsPlotProbe(
     ax=ax2
 )
 viz_probes = [p1, p2]
-plt.show(block=False)
+plt.show(block=False) """
 
 
 # ───────────────────────────
@@ -135,27 +135,27 @@ final_pop = generational_ea(
         initialize=init_genome
     ),
     pipeline=[
-        tournament_selection(k=3),
+        tournament_selection(k=2),
         clone,
         # Uniform crossover works on real arrays
-        UniformCrossover(p_swap=0.5),
+        UniformCrossover(p_swap=0.7),
         # Gaussian mutation
-        mutate_gaussian(sigma=0.1, frac_genes=0.05),
+        mutate_gaussian(sigma=0.2, frac_genes=0.3),
         ops.evaluate,               # calls MazeSolver.evaluate()
         ops.pool(size=pop_size),    # keep best pop_size
         save(filename="current_nn_pop.pkl"),
         probe.FitnessStatsCSVProbe(stream=sys.stdout),
-        *viz_probes
+        #*viz_probes
     ]
 )
 
 # ───────────────────────────
 # Finalize plots
 # ───────────────────────────
-plt.ioff()
+""" plt.ioff()
 if os.environ.get(test_env_var, "") != "":
     plt.show()
-plt.close(fig)
+plt.close(fig) """
 
 
 # ───────────────────────────

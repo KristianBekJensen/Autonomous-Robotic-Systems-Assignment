@@ -9,7 +9,8 @@ def fitness(num_collisions: int,
 
     return (collision_weight * num_collisions
             + time_weight * num_time_steps
-            + dist_weight * dist_to_target)
+            + dist_weight * dist_to_target) 
+
 
 
 def distance_to_target(position: tuple[float, float], target: tuple[float, float]) -> float:
