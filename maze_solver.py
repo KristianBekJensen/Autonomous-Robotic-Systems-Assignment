@@ -1,0 +1,225 @@
+import math
+import numpy as np
+import pygame
+
+from leap_ec.problem import ScalarProblem
+from fitness import distance_to_target, fitness
+from mapping import *
+from path_finder import find_path
+from robot import Robot
+from kalman_filter import KalmanFilter
+from maps import draw_map
+
+class NeuralController:
+    """
+    A 2-layer MLP with tanh activations.
+    Genotype layout:
+      [ W1_flat (hidden x in), b1 (hidden),
+        W2_flat (out x hidden), b2 (out) ]
+    """
+
+    def __init__(self, genotype, input_size, hidden_size=5, output_size=2):
+        self.input_size  = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
+
+        g = np.asarray(genotype, dtype=float)
+        idx = 0
+
+        end = hidden_size * input_size
+        self.W1 = g[idx:idx+end].reshape(hidden_size, input_size)
+        idx += end
+
+        self.b1 = g[idx:idx+hidden_size]
+        idx += hidden_size
+
+        end = output_size * hidden_size
+        self.W2 = g[idx:idx+end].reshape(output_size, hidden_size)
+        idx += end
+
+        self.b2 = g[idx:idx+output_size]
+        # idx += output_size
+
+    def forward(self, x):
+        # x: (input_size,)
+        h = np.tanh(self.W1.dot(x) + self.b1)    # hidden activations
+        y = np.tanh(self.W2.dot(h) + self.b2)    # output in [-1,1]
+        return y
+
+
+class MazeSolver(ScalarProblem):
+    """
+    Black-box MAZE solver.  The 'phenome' is a real vector of NN weights.
+    """
+
+    def __init__(self,
+                 maximize: bool,
+                 visualization: bool,
+                 num_sensors: int,
+                 wheel_inputs: int = None,
+                 angle_inputs: int = None):
+        super().__init__(maximize=maximize)
+        self.visualize_evaluation = visualization
+        self.num_sensors = num_sensors
+
+        # new continuous controller: sensors + 2 wheel speeds + 1 heading error
+        self.input_size = self.num_sensors + 2 + 1
+        self.hidden_size = 5
+        self.output_size = 2
+
+    def evaluate(self, phenome):
+        # Build controller from genotype
+        controller = NeuralController(
+            genotype=phenome,
+            input_size=self.input_size,
+            hidden_size=self.hidden_size,
+            output_size=self.output_size
+        )
+
+        # --- Pygame & robot setup (same as before) ---
+        pygame.init()
+        clock = pygame.time.Clock()
+
+        # Metrics
+        collisions = 0
+        steps      = 0
+        max_steps  = float('inf') if self.visualize_evaluation else 200
+        target_x, target_y = 700, 700
+
+        # Robot initial pose
+        x, y, theta = 100, 100, 0
+        min_speed, max_speed = 0.3, 3.0
+        robot = Robot(x, y, theta,
+                      radius=15,
+                      axel_length=10,
+                      max_sensor_range=100,
+                      num_sensors=self.num_sensors)
+        robot.v_left  = min_speed
+        robot.v_right = min_speed
+
+        process_noise              = 0.01
+        position_measurement_noise = 0.01
+        theta_mesurement_noise     = 0.005
+
+        # Kalman filter & map
+        kf = KalmanFilter(
+            np.array([x, y, theta]),                     # init_state
+            np.diag([0.1, 0.1, 0.1]),                    # init_covariance
+            np.diag([process_noise, process_noise,       # process_noise R
+                     theta_mesurement_noise]),
+            np.diag([position_measurement_noise,         # measurement_noise Q
+                     position_measurement_noise,
+                     theta_mesurement_noise])
+        )
+        SCREEN_W = SCREEN_H = 800
+        PAD, NBW, NBH, BS = 20, 8, 8, 100
+        grid = np.zeros((SCREEN_W//4, SCREEN_H//4))
+        grid_prob = np.full(grid.shape, 0.5)
+
+        # Pygame window
+        flags = 0 if self.visualize_evaluation else pygame.HIDDEN
+        screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H), flags)
+        main_surf = screen.subsurface((0,0,SCREEN_W,SCREEN_H))
+
+        walls, landmarks, obstacles = draw_map(
+            main_surf, num_blocks_w=NBW, num_blocks_h=NBH,
+            pad=PAD, wall_thickness=4, n_obstacles=0, random_seed=44
+        )
+
+        pygame.display.flip()
+
+        # --- Simulation loop ---
+        running = True
+        while running:
+            # catch the window-close event
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    break
+            steps += 1
+            if steps > max_steps:
+                break
+
+            pygame.event.pump()
+            main_surf.fill((255,255,255))
+
+            if self.visualize_evaluation:
+                for w in walls:       pygame.draw.rect(main_surf, (0,0,0), w)
+                for o in obstacles:   pygame.draw.rect(main_surf, (0,0,0), o)
+                for _, mx, my in landmarks:
+                    pygame.draw.circle(main_surf, 'blue', (mx,my), 5)
+                robot.draw_Robot(main_surf)
+                pygame.draw.circle(main_surf, (255,0,0), (target_x,target_y), 10)
+
+            # Sense & localize
+            robot.sense(walls+obstacles, main_surf, False)
+            detected_landmarks = robot.detect_landmarks(landmarks, main_surf, False)
+            free, occ = get_observed_cells(
+                robot,
+                BS,                 # grid cell size
+                grid.shape[0],      # number of columns
+                grid.shape[1]       # number of rows
+            )
+            for f in free: grid[f] += -0.85/(kf.sigma[0,0]*10+1)
+            for o in occ: grid[o] +=  2.2/(kf.sigma[0,0]*10+1)
+            grid_prob = log_odds_to_prob(grid)
+
+            robot.estimate_pose(
+                kf,
+                landmarks,
+                detected_landmarks,
+                main_surf,
+                position_measurement_noise,  # ← matches 5th param
+                theta_mesurement_noise,      # ← matches 6th param
+                process_noise                # ← matches 7th param
+            )
+
+            # Path-planning
+            ex, ey, _ = robot.estimated_pose
+            path = find_path(grid_prob, (ex,ey), (target_x,target_y), BS,
+                             robot_radius=20, safety_param=1.2, occ_thresh=0.6,
+                             draw=self.visualize_evaluation, surface=main_surf)
+
+            # Compute heading‐error φ
+            if path and len(path)>4:
+                dx = path[4][0] - ex
+                dy = path[4][1] - ey
+                phi = (math.atan2(dy, dx) - robot.theta) % (2*math.pi)
+            else:
+                phi = 0.0
+
+            # --- NEW: controller step ---
+            # build input vector ∈ ℝ^input_size
+            inp = np.zeros(self.input_size, dtype=float)
+            # normalize sensors to [0,1]
+            inp[:self.num_sensors] = np.array(robot.sensor_values)/robot.max_sensor_range
+            # normalize wheel speeds
+            inp[self.num_sensors + 0] = (robot.v_left  - min_speed)/(max_speed-min_speed)
+            inp[self.num_sensors + 1] = (robot.v_right - min_speed)/(max_speed-min_speed)
+            # normalize angle error
+            inp[self.num_sensors + 2] = phi/(2*math.pi)
+
+            out = controller.forward(inp)   # 2 outputs in [−1,1]
+            # map back to [min_speed,max_speed]
+            robot.v_left  = min_speed + (out[0]+1)/2*(max_speed-min_speed)
+            robot.v_right = min_speed + (out[1]+1)/2*(max_speed-min_speed)
+
+            # collision, motion, drawing
+            if robot.check_If_Collided(walls+obstacles):
+                collisions += 1
+            dist = distance_to_target((robot.x,robot.y),(target_x,target_y))
+            robot.move(walls+obstacles)
+
+            if self.visualize_evaluation:
+                pygame.display.flip()
+                clock.tick(60)
+
+        # shutdown
+        pygame.quit()
+
+        # final score
+        return fitness(
+            num_collision=collisions,
+            num_time_steps=steps,
+            dist_to_target=dist
+        )
