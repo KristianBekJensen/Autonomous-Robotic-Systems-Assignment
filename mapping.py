@@ -96,7 +96,8 @@ def get_observed_cells(robot, grid_size, number_x_grids, number_y_grids):
     return free_cells, occupied_cells
 
 def log_odds_to_prob(log_odds):
-    return 1 - (1 / (1 + np.exp(log_odds)))
+    clipped = np.clip(log_odds, -500, 500) # to avoid overflow error
+    return 1.0 / (1.0 + np.exp(-clipped))
 
 def probs_to_grey_scale(prob):
     return (prob * 255).astype(np.uint8)
