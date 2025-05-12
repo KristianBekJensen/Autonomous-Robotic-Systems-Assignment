@@ -1,10 +1,13 @@
 import pickle
-from maze_solver import MazeSolver
+from maze_solver_nn import MazeSolver
 
 # ────────────────
 # 1) Load the final population
 # ────────────────
-with open("populations/final_nn_pop.pkl", "rb") as f:
+# with open("populations/final_nn_pop.pkl", "rb") as f:
+#     final_pop = pickle.load(f)
+
+with open("populations/current_nn_pop.pkl", "rb") as f:
     final_pop = pickle.load(f)
 
 # ────────────────

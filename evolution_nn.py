@@ -11,7 +11,7 @@ from leap_ec.algorithm import generational_ea
 from leap_ec.util import wrap_curry
 from leap_ec.ops import UniformCrossover, tournament_selection, clone
 
-from maze_solver import MazeSolver
+from maze_solver_nn import MazeSolver
 from trajectory_recorder import save_pop, load_pop
 
 
