@@ -15,4 +15,4 @@ genome_length = (
 )
 
 pop_size    = 10
-generations = 5 
+generations = 50 

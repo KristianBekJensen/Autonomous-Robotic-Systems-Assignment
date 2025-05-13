@@ -79,13 +79,13 @@ class MazeSolver(ScalarProblem):
         # Metrics
         collisions = 0
         steps      = 0
-        #max_steps  = float('inf') if self.visualize_evaluation else 400
-        max_steps  = 400
+        max_steps  = float('inf') if self.visualize_evaluation else 5000
+        # max_steps  = 400
         target_x, target_y = 500, 500
 
         # Robot initial pose
         x, y, theta = 100, 100, 0
-        min_speed, max_speed = 0.3, 3.0
+        min_speed, max_speed = -1.5, 1.5
         robot = Robot(x, y, theta,
                       radius=15,
                       axel_length=10,
@@ -112,6 +112,8 @@ class MazeSolver(ScalarProblem):
         PAD, NBW, NBH, BS = 20, 8, 8, 100
         grid = np.zeros((SCREEN_W//4, SCREEN_H//4))
         grid_prob = np.full(grid.shape, 0.5)
+        WALL_THICKNESS = 4
+        GRID_SIZE = WALL_THICKNESS
 
         # Pygame window
         flags = 0 if self.visualize_evaluation else pygame.HIDDEN
@@ -154,12 +156,16 @@ class MazeSolver(ScalarProblem):
             # Sense & localize
             robot.sense(walls+obstacles, main_surf, False)
             detected_landmarks = robot.detect_landmarks(landmarks, main_surf, False)
+
+            # Get Estimated Map
+            free_cells, occipied_cells = get_observed_cells(robot, GRID_SIZE, grid.shape[0], grid.shape[1])
             free, occ = get_observed_cells(
                 robot,
-                BS,                 # grid cell size
+                GRID_SIZE,          # grid cell size
                 grid.shape[0],      # number of columns
                 grid.shape[1]       # number of rows
             )
+
             for f in free: grid[f] += -0.85/(kf.sigma[0,0]*10+1)
             for o in occ: grid[o] +=  2.2/(kf.sigma[0,0]*10+1)
             grid_prob = log_odds_to_prob(grid)
@@ -222,17 +228,17 @@ class MazeSolver(ScalarProblem):
         # shutdown
         pygame.quit()
 
-        map_unexplored = compute_map_exploration(grid_prob, threshold=0.3)
+        map_unexplored = 1 - compute_map_exploration(grid_prob, threshold=1e-7)
 
         # final score
-       
+        
         return fitness(
             num_collisions=collisions,
             num_time_steps=steps,
             dist_to_target=dist,
             map_unexplored=map_unexplored,
             collision_weight=1.0,
-            time_weight=0.0,
-            dist_weight=0.0,
-            exploration_weight=1.0
+            time_weight=1.0,
+            dist_weight=20.0,
+            exploration_weight=10.0
         )
