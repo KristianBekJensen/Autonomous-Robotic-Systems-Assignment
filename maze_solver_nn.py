@@ -51,16 +51,17 @@ class MazeSolver(ScalarProblem):
                  maximize: bool,
                  visualization: bool,
                  num_sensors: int,
-                 wheel_inputs: int = None,
-                 angle_inputs: int = None):
+                 input_size: int,
+                 hidden_size: int,
+                 output_size: int):
         super().__init__(maximize=maximize)
         self.visualize_evaluation = visualization
         self.num_sensors = num_sensors
 
         # new continuous controller: sensors + 2 wheel speeds + 1 distance to target + 1 angle to target
-        self.input_size = self.num_sensors + 2 + 1 + 1
-        self.hidden_size = 5
-        self.output_size = 2
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.output_size = output_size
 
     def evaluate(self, phenome):
         # Build controller from genotype
@@ -173,22 +174,7 @@ class MazeSolver(ScalarProblem):
                 process_noise                # ← matches 7th param
             )
             
-            ## TODO:
-            ### We need to not use path planning/ remove the input of angel to path/ maybe replace it with
-            ### estimated distance to target
-            # Path-planning
-            # ex, ey, _ = robot.estimated_pose
-            # path = find_path(grid_prob, (ex,ey), (target_x,target_y), BS,
-            #                  robot_radius=20, safety_param=1.2, occ_thresh=0.6,
-            #                  draw=self.visualize_evaluation, surface=main_surf)
-
-            # # Compute heading‐error φ
-            # if path and len(path)>4:
-            #     dx = path[4][0] - ex
-            #     dy = path[4][1] - ey
-            #     phi = (math.atan2(dy, dx) - robot.theta) % (2*math.pi)
-            # else:
-            #     phi = 0.0
+           
 
             # calculate the distance to target
             d_to_target_from_estimate = distance_to_target((kf.mu[0], kf.mu[1]),(target_x,target_y))
@@ -245,7 +231,7 @@ class MazeSolver(ScalarProblem):
             num_time_steps=steps,
             dist_to_target=dist,
             map_unexplored=map_unexplored,
-            collision_weight=0.0,
+            collision_weight=1.0,
             time_weight=0.0,
             dist_weight=0.0,
             exploration_weight=1.0

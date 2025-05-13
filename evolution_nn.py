@@ -22,7 +22,7 @@ from trajectory_recorder import save_pop, load_pop
 num_sensors = 6
 
 # MLP dimensions (must match maze_solver.py)
-input_size   = num_sensors + 2 + 1
+input_size   = num_sensors + 2 + 1 + 1
 hidden_size  = 10
 output_size  = 2
 
@@ -35,7 +35,7 @@ genome_length = (
 )
 
 pop_size    = 10
-generations = 20 
+generations = 5 
 
 
 # ───────────────────────────
@@ -44,7 +44,10 @@ generations = 20
 problem = MazeSolver(
     maximize=False,
     visualization=False,
-    num_sensors=num_sensors
+    num_sensors=num_sensors,
+    input_size=input_size,
+    hidden_size=hidden_size,
+    output_size=output_size
 )
 # if true load (sample) from previous population ; if false, random
 load_old_pop = False
