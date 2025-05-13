@@ -14,5 +14,6 @@ genome_length = (
     + output_size                 # b2
 )
 
-pop_size    = 10
-generations = 5 
+pop_size    = 15
+generations = 10
+

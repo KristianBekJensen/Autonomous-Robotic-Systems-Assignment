@@ -31,53 +31,31 @@ problem = MazeSolver(
     hidden_size=hidden_size,
     output_size=output_size
 )
-# if true load (sample) from previous population ; if false, random
+
+# ───────────────────────────
+# Genome initializer
+# ───────────────────────────
 load_old_pop = False
 
-# ───────────────────────────
-# Initializer: Load from previous population
-# ───────────────────────────
 def init_genome_from_file():
-    """
-    Load genomes from previous final population file.
-    If fewer than pop_size individuals are present, sample with replacement.
-    """
-    filename = "final_nn_pop.pkl"
-    prev_pop = load_pop(filename)
-
-    print(prev_pop)
-
-    if len(prev_pop) < pop_size:
-        chosen = np.random.choice(prev_pop, size=pop_size, replace=True)
+    prev = load_pop("final_nn_pop.pkl")
+    if len(prev) < pop_size:
+        chosen = np.random.choice(prev, size=pop_size, replace=True)
     else:
-        chosen = np.random.choice(prev_pop, size=pop_size, replace=False)
-
-    # Return one genome at a time (LEAP will call this repeatedly)
+        chosen = np.random.choice(prev, size=pop_size, replace=False)
     for ind in chosen:
         yield ind.genome
 
-
-# Create an iterator of genomes
-genome_iterator = init_genome_from_file()
+genome_iter = init_genome_from_file()
 
 def init_genome():
     if load_old_pop:
-        return next(genome_iterator)
+        return next(genome_iter)
     else:
-        # Return one genome at a time (LEAP will call this repeatedly)
-        return np.random.uniform(-1.0, 1.0, size=genome_length)
+        #return np.random.uniform(-1.0, 1.0, size=genome_length)
+        return np.random.normal(0.0, 0.1, size=genome_length)
 
 
-# ───────────────────────────
-# A float‐vector initializer
-# ───────────────────────────
-""" def init_genome():
-    
-    Return *one* genome (a NumPy array of length genome_length),
-    uniformly sampled from [-1,1].  LEAP will call this pop_size times.
-    
-    return np.random.uniform(-1.0, 1.0, size=genome_length) 
-"""
 
 # ───────────────────────────
 # A Gaussian‐mutation operator
@@ -162,7 +140,7 @@ final_pop = generational_ea(
         # Uniform crossover works on real arrays
         UniformCrossover(p_swap=0.5),
         # Gaussian mutation
-        mutate_gaussian(sigma=0.4, frac_genes=0.4),
+        mutate_gaussian(sigma=0.3, frac_genes=0.2),
         ops.evaluate,               # calls MazeSolver.evaluate()
         ops.pool(size=pop_size),    # keep best pop_size
         save(filename="current_nn_pop.pkl"),
