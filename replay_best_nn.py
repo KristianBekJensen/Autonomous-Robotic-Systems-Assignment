@@ -1,6 +1,6 @@
 import pickle
 from maze_solver_nn import MazeSolver
-from evolution_nn import num_sensors, input_size, hidden_size, output_size
+from config_nn import num_sensors, input_size, hidden_size, output_size
 
 
 # Load the final population

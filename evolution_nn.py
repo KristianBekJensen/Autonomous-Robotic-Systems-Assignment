@@ -15,28 +15,10 @@ from leap_ec.ops import UniformCrossover, tournament_selection, clone
 from maze_solver_nn import MazeSolver
 from trajectory_recorder import save_pop, load_pop
 
+from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations
 
-# ───────────────────────────
-# EA & simulation parameters
-# ───────────────────────────
-num_sensors = 6
-
-# MLP dimensions (must match maze_solver.py)
-input_size   = num_sensors + 2 + 1 + 1
-hidden_size  = 10
-output_size  = 2
-
-# calculate total genome length:
-genome_length = (
-      hidden_size * input_size    # W1
-    + hidden_size                 # b1
-    + output_size * hidden_size   # W2
-    + output_size                 # b2
-)
-
-pop_size    = 10
-generations = 5 
-
+# Training parameters:
+# defined in config_nn.py
 
 # ───────────────────────────
 # Create the problem
