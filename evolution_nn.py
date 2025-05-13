@@ -34,8 +34,8 @@ genome_length = (
     + output_size                 # b2
 )
 
-pop_size    = 5
-generations = 5
+pop_size    = 10
+generations = 20 
 
 
 # ───────────────────────────
@@ -172,12 +172,12 @@ final_pop = generational_ea(
         initialize=init_genome
     ),
     pipeline=[
-        tournament_selection(k=2),
+        tournament_selection(k=3),
         clone,
         # Uniform crossover works on real arrays
-        UniformCrossover(p_swap=0.7),
+        UniformCrossover(p_swap=0.5),
         # Gaussian mutation
-        mutate_gaussian(sigma=0.2, frac_genes=0.3),
+        mutate_gaussian(sigma=0.4, frac_genes=0.4),
         ops.evaluate,               # calls MazeSolver.evaluate()
         ops.pool(size=pop_size),    # keep best pop_size
         save(filename="current_nn_pop.pkl"),

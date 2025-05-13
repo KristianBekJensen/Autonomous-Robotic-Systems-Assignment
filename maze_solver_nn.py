@@ -3,7 +3,7 @@ import numpy as np
 import pygame
 
 from leap_ec.problem import ScalarProblem
-from fitness_nn import distance_to_target, fitness
+from fitness_nn import distance_to_target, fitness, compute_map_exploration
 from mapping import *
 from path_finder import find_path
 from robot import Robot
@@ -11,12 +11,7 @@ from kalman_filter import KalmanFilter
 from maps import draw_map
 
 class NeuralController:
-    """
-    A 2-layer MLP with tanh activations.
-    Genotype layout:
-      [ W1_flat (hidden x in), b1 (hidden),
-        W2_flat (out x hidden), b2 (out) ]
-    """
+    
 
     def __init__(self, genotype, input_size, hidden_size=5, output_size=2):
         self.input_size  = input_size
@@ -83,7 +78,8 @@ class MazeSolver(ScalarProblem):
         # Metrics
         collisions = 0
         steps      = 0
-        max_steps  = float('inf') if self.visualize_evaluation else 400
+        #max_steps  = float('inf') if self.visualize_evaluation else 400
+        max_steps  = 400
         target_x, target_y = 500, 500
 
         # Robot initial pose
@@ -240,21 +236,17 @@ class MazeSolver(ScalarProblem):
         # shutdown
         pygame.quit()
 
-        
+        map_unexplored = compute_map_exploration(grid_prob, threshold=0.3)
 
         # final score
-        """ return fitness(
-            num_collisions=collisions,
-            num_time_steps=steps,
-            dist_to_target=dist,
-            target_reached=target_reached,
-            max_time_steps=max_steps,
-        ) """
+       
         return fitness(
             num_collisions=collisions,
             num_time_steps=steps,
             dist_to_target=dist,
-            collision_weight=1.0,
+            map_unexplored=map_unexplored,
+            collision_weight=0.0,
             time_weight=0.0,
-            dist_weight=1.0
+            dist_weight=0.0,
+            exploration_weight=1.0
         )
