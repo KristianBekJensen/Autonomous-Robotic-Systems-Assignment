@@ -2,3 +2,4 @@ leap_ec
 matplotlib
 numpy
 pygame
+pynput

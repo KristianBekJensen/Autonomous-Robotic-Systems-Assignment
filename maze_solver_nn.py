@@ -91,6 +91,7 @@ class MazeSolver(ScalarProblem):
             # make the target random
             target_x = np.random.uniform(50, 750)
             target_y = np.random.uniform(50, 750) 
+            avg_sigma = 0
 
             # Robot initial pose
             SCREEN_W = SCREEN_H = 800
@@ -263,4 +264,4 @@ class MazeSolver(ScalarProblem):
             )
             print(fitness_score)
        
-        return fitness_score / number_runs
+        return fitness_score / number_runs,  avg_sigma/steps
