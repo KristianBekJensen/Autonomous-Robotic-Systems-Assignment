@@ -55,7 +55,9 @@ class MazeSolver(ScalarProblem):
                  num_sensors: int,
                  input_size: int,
                  hidden_size: int,
-                 output_size: int):
+                 output_size: int,
+                 max_steps: int,
+                 random = 44):
         super().__init__(maximize=maximize)
         self.visualize_evaluation = visualization
         self.num_sensors = num_sensors
@@ -64,20 +66,24 @@ class MazeSolver(ScalarProblem):
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
+        self.max_steps = max_steps
+        self.random = random
 
     def evaluate(self, phenome):
         # Build controller from genotype
-        controller = NeuralController(
+        explore_controller = NeuralController(
             genotype=phenome,
             input_size=self.input_size,
             hidden_size=self.hidden_size,
             output_size=self.output_size
         )
+
         fitness_score = 0.0
-        number_runs = 2
+        number_runs = 1
         
         for i in range(number_runs):
 
+            total_speed=0
             # --- Pygame & robot setup (same as before) ---
             pygame.init()
             clock = pygame.time.Clock()
@@ -86,7 +92,6 @@ class MazeSolver(ScalarProblem):
             collisions = 0
             steps      = 0
             #max_steps  = float('inf') if self.visualize_evaluation else 400
-            max_steps  = 1000
             #target_x, target_y = 500, 500
             # make the target random
             target_x = np.random.uniform(50, 750)
@@ -135,10 +140,11 @@ class MazeSolver(ScalarProblem):
             flags = 0 if self.visualize_evaluation else pygame.HIDDEN
             screen = pygame.display.set_mode((2*SCREEN_W, SCREEN_H), flags)
             main_surf = screen.subsurface((0,0,SCREEN_W,SCREEN_H))
+            second_surface = screen.subsurface((SCREEN_W, 0, SCREEN_W, SCREEN_H))
 
             walls, landmarks, obstacles = draw_map(
                 main_surf, num_blocks_w=NBW, num_blocks_h=NBH,
-                pad=PAD, wall_thickness=4, n_obstacles=0, random_seed=44, p_landmark=1.0, wall_h_prob=0.2, wall_v_prob=0.2
+                pad=PAD, wall_thickness=4, n_obstacles=0, random_seed=self.random, p_landmark=1.0, wall_h_prob=0.2, wall_v_prob=0.2
             )
 
             pygame.display.flip()
@@ -156,7 +162,7 @@ class MazeSolver(ScalarProblem):
                         running = False
                         break
                 steps += 1
-                if steps > max_steps:
+                if steps > self.max_steps:
                     break
 
                 """ if steps % 100 == 0:
@@ -213,20 +219,28 @@ class MazeSolver(ScalarProblem):
                 # build input vector ∈ ℝ^input_size
                 inp = np.zeros(self.input_size, dtype=float)
                 # normalize sensors to [0,1]
-                inp[:self.num_sensors] = np.array(robot.sensor_values)/robot.max_sensor_range
+                def chunks(lst, n):
+                    """Yield successive n-sized chunks from lst."""
+                    for i in range(0, len(lst), n):
+                        yield lst[i:i + n]
+                sensor_block_values = []
+                for chunk in chunks(robot.sensor_values, int(math.log(robot.num_sensors, 6))):
+                    sensor_block_values.append(min(chunk))
+                inp[:self.num_sensors] = np.array(sensor_block_values) / robot.max_sensor_range
                 # normalize wheel speeds
                 inp[self.num_sensors + 0] = (robot.v_left  - min_speed)/(max_speed-min_speed)
                 inp[self.num_sensors + 1] = (robot.v_right - min_speed)/(max_speed-min_speed)
                 # normalize angle error
                 
                 # distance and angle to target from our estimated position 
-                max_dist = math.hypot(SCREEN_W, SCREEN_H)  # normalize max distance
-                inp[self.num_sensors+2] = d_to_target_from_estimate / max_dist 
-                inp[self.num_sensors + 3] = phi / math.pi
+                # max_dist = math.hypot(SCREEN_W, SCREEN_H)  # normalize max distance
+                # inp[self.num_sensors+2] = d_to_target_from_estimate / max_dist 
+                # inp[self.num_sensors + 3] = phi / math.pi
+                              
 
 
 
-                out = controller.forward(inp)   # 2 outputs in [−1,1]
+                out = explore_controller.forward(inp)   # 2 outputs in [−1,1]
                 # map back to [min_speed,max_speed]
                 robot.v_left  = min_speed + (out[0]+1)/2*(max_speed-min_speed)
                 robot.v_right = min_speed + (out[1]+1)/2*(max_speed-min_speed)
@@ -237,7 +251,18 @@ class MazeSolver(ScalarProblem):
                 distance_to_goal += distance_to_target((robot.x,robot.y),(target_x,target_y))
                 if distance_to_goal < robot.radius:
                     break
-                robot.move(walls+obstacles)
+
+                speed = robot.move(walls+obstacles)
+                if speed < 4:
+                    total_speed += 5
+
+                if self.visualize_evaluation:
+                    grid_probability_grey_scale = probs_to_grey_scale(grid_prob)
+                    # draw the grid probabilities 
+                    for i in range(len(grid_probability_grey_scale)):
+                        for j in range(len(grid_probability_grey_scale[i])):
+                            color = grid_probability_grey_scale[i][j]
+                            pygame.draw.rect(second_surface, (color,color,color), (i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE))
 
                 if self.visualize_evaluation:
                     pygame.display.flip()
@@ -246,10 +271,8 @@ class MazeSolver(ScalarProblem):
             # shutdown
             pygame.quit()
 
-            map_unexplored = compute_map_exploration(grid_prob, threshold=0.3)
-
+            map_unexplored = compute_map_exploration(grid_prob, threshold=1e-3)
             distance_to_goal = distance_to_goal / steps
-
 
             # final score
             fitness_score += fitness(
@@ -257,11 +280,12 @@ class MazeSolver(ScalarProblem):
                 num_time_steps=steps,
                 dist_to_target=distance_to_goal,
                 map_unexplored=map_unexplored,
-                collision_weight=0.0,
+                speed = total_speed,
+                collision_weight=20.0,
                 time_weight=0.0,
-                dist_weight=1.0,
-                exploration_weight=0.0
+                dist_weight=0.0,
+                exploration_weight=1000.0,
+                speed_weight=0.5 
+                
             )
-            print(fitness_score)
-       
-        return fitness_score / number_runs,  avg_sigma/steps
+        return fitness_score / number_runs,  avg_sigma/steps/number_runs

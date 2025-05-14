@@ -2,11 +2,12 @@
 
 import os
 import sys
+from distributed import Client, LocalCluster
 import numpy as np
 import pygame
 import graph
 from matplotlib import pyplot as plt
-
+from leap_ec.distrib import synchronous
 from leap_ec import Representation, test_env_var
 from leap_ec import ops, probe
 from leap_ec.algorithm import generational_ea
@@ -18,20 +19,35 @@ from graph import PopulationMetricsPlotProbe
 from maze_solver_nn import MazeSolver
 from trajectory_recorder import save_pop, load_pop
 
-from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations
+from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map
 class Evolution_nn():
     def __init__(self):
         self.gen = 0
         self.save = False
         pygame.init()
+
     @wrap_curry
-    def MyMethodAsync(self, pop):
-        #while True:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_1]:
-                self.save = not self.save
-                print("saving next gen")
-            return pop
+    def grouped_evaluate(self, population, client, max_individuals_per_chunk: int = 4 ) -> list:
+        """Evaluate the population by sending groups of multiple individuals to
+        a fitness function so they can be evaluated simultaneously.
+
+        This is useful, for example, as a way to evaluate individuals in parallel
+        on a GPU."""
+        if max_individuals_per_chunk is None:
+            max_individuals_per_chunk = len(population)
+
+        def chunks(lst, n):
+            """Yield successive n-sized chunks from lst."""
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+
+        evaluated_pop = []
+        for chunk in chunks(population, max_individuals_per_chunk):
+            # XXX Always passing individuals along to the problem.
+            #     Does this create problems with dask, even when we aren't using individuals?
+                evaluated_pop.extend( synchronous.eval_population(chunk, client))
+
+        return evaluated_pop
 
     @wrap_curry
     def gen_tick(self, pop):
@@ -41,7 +57,7 @@ class Evolution_nn():
     @wrap_curry
     def save_gen(self, pop, filename, interval=1):
         if self.gen % interval == 0:
-            filename += str(self.gen) + ".pkl"
+            filename += str(self.gen)
             save_pop(pop, filename + ".pkl")
             plt.savefig(filename + ".png")
         return pop
@@ -60,7 +76,9 @@ class Evolution_nn():
             num_sensors=num_sensors,
             input_size=input_size,
             hidden_size=hidden_size,
-            output_size=output_size
+            output_size=output_size,
+            max_steps=max_steps,
+            random = self.gen if random_map else 44
         )
         # if true load (sample) from previous population ; if false, random
         load_old_pop = False
@@ -76,7 +94,6 @@ class Evolution_nn():
             filename = "final_nn_pop.pkl"
             prev_pop = load_pop(filename)
 
-            print(prev_pop)
 
             if len(prev_pop) < pop_size:
                 chosen = np.random.choice(prev_pop, size=pop_size, replace=True)
@@ -164,77 +181,79 @@ class Evolution_nn():
         fig, axes  = plt.subplots(1, 3, figsize=(14,5))
         p1 = PopulationMetricsPlotProbe(
             metrics=[ lambda pop: probe.best_of_gen(pop).fitness ],
-            xlim=(0, generations),
+            xlim=(0, self.gen),
             title="Best-of-Generation Fitness",
             ax=axes[0]
         )
         p2 = PopulationMetricsPlotProbe(
             metrics=[probe.pairwise_squared_distance_metric],
-            xlim=(0, generations),
+            xlim=(0, self.gen),
             title="Population Diversity",
             ax=axes[1]
         )
         p3 = PopulationMetricsPlotProbe(
             metrics=[ lambda pop: graph.best_avg_sigma(pop).avg_sigma ],
-            xlim=(0, generations),
+            xlim=(0, self.gen),
             title="Best-of-Generation Avg_Sigma",
             ax=axes[2])
         viz_probes = [p1, p2, p3]
 
 
         plt.show(block=False)
+        if __name__ == '__main__':
+            #cluster = LocalCluster()
+            #cluster.scale(5)
+            client = Client()
+            # ───────────────────────────
+            # Run the EA
+            # ───────────────────────────
+            final_pop = generational_ea(
+                max_generations=generations,
+                pop_size=pop_size,
+                problem=problem,
+                representation=Representation(
+                    # each call returns ONE genome of length genome_length
+                    initialize=init_genome,
+                    individual_cls=Custom_Individual
+                ),
+                pipeline=[
+                    tournament_selection(k=10),
+                    clone,
+                    # Uniform crossover works on real arrays
+                    UniformCrossover(p_swap=0.5),
+                    # Gaussian mutation
+                    mutate_gaussian(sigma=0.4, frac_genes=0.2),
+                    ops.pool(size=pop_size),    # keep best pop_size
+                    self.grouped_evaluate(client=client, max_individuals_per_chunk=4),               # calls MazeSolver.evaluate()
+                    self.gen_tick(),
+                    self.save_gen(filename="map_explored1000_speed5_col20_16pop_time24_gen_", interval=10),
+                    probe.FitnessStatsCSVProbe(stream=sys.stdout),
+                    *viz_probes
+                ]
+            )
 
-        # ───────────────────────────
-        # Run the EA
-        # ───────────────────────────
-        final_pop = generational_ea(
-            max_generations=generations,
-            pop_size=pop_size,
-            problem=problem,
-            representation=Representation(
-                # each call returns ONE genome of length genome_length
-                initialize=init_genome,
-                individual_cls=Custom_Individual
-            ),
-            pipeline=[
-                tournament_selection(k=3),
-                clone,
-                # Uniform crossover works on real arrays
-                UniformCrossover(p_swap=0.5),
-                # Gaussian mutation
-                mutate_gaussian(sigma=0.3, frac_genes=0.2),
-                ops.evaluate,               # calls MazeSolver.evaluate()
-                ops.pool(size=pop_size),    # keep best pop_size
-                self.gen_tick(),
-                self.save_gen(filename="current_nn_pop", interval=10),
-                probe.FitnessStatsCSVProbe(stream=sys.stdout),
-                *viz_probes
-            ]
-        )
-
-        # ───────────────────────────
-        # Finalize plots
-        # ───────────────────────────
-        """ plt.ioff()
-        if os.environ.get(test_env_var, "") != "":
-            plt.show()
-        plt.close(fig) """
+            # ───────────────────────────
+            # Finalize plots
+            # ───────────────────────────
+            """ plt.ioff()
+            if os.environ.get(test_env_var, "") != "":
+                plt.show()
+            plt.close(fig) """
 
 
-        # ───────────────────────────
-        # Save & report
-        # ───────────────────────────
-        os.makedirs("populations", exist_ok=True)
+            # ───────────────────────────
+            # Save & report
+            # ───────────────────────────
+            os.makedirs("populations", exist_ok=True)
 
-        final_fname = "final_nn_pop.pkl"
-        self.save_gen(final_pop, final_fname)
+            final_fname = "final_nn_pop.pkl"
+            self.save_gen(final_pop, final_fname)
 
-        best = min(final_pop, key=lambda ind: ind.fitness)
-        print("Training complete.")
-        print(f"  Best fitness: {best.fitness:.3f}")
-        print(f"  Saved population to populations/{final_fname!r}")
+            best = min(final_pop, key=lambda ind: ind.fitness)
+            print("Training complete.")
+            print(f"  Best fitness: {best.fitness:.3f}")
+            print(f"  Saved population to populations/{final_fname!r}")
 
 
 x = Evolution_nn()
-x.MyMethodAsync()
 x.run()

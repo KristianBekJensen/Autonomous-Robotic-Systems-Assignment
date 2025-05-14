@@ -2,7 +2,7 @@
 num_sensors = 6
 
 # MLP dimensions (must match maze_solver.py)
-input_size   = num_sensors + 2 + 1 + 1
+input_size   = num_sensors + 2 #+ 1 + 1
 hidden_size  = 10
 output_size  = 2
 
@@ -14,6 +14,9 @@ genome_length = (
     + output_size                 # b2
 )
 
-pop_size    = 15
-generations = 10
+max_steps = 2400
+random_map = False
+
+pop_size    = 16
+generations = 100000
 
