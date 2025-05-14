@@ -49,4 +49,4 @@ fitness = Fitness(collision_weight=collision_weight,
                 targets_collected_weight=targets_collected_weight)
 fitness_func = fitness.linar_fitness
 
-save_as = "target_" + "sensors" + num_sensors + "_Msteps"+ max_steps/10 + "_r" + "T" if random_map else "F" + "_P" + pop_size + "_c" + collision_weight + "_e" + exploration_weight/10 + "_s" + speed_weight + "_t" + targets_collected_weight
+save_as = "target_" + "sensors" + str(num_sensors) + "_Msteps"+ str(max_steps/10) + "_r" + "T" if random_map else "F" + "_P" + str(pop_size) + "_c" + str(collision_weight) + "_e" + str(exploration_weight/10) + "_s" + str(speed_weight) + "_t" + str(targets_collected_weight)

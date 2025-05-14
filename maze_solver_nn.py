@@ -77,10 +77,10 @@ class TargetController(ExploreController):
             for i in range(0, len(lst), n):
                 yield lst[i:i + n]
         
-        sensor_block_values = []
-        for chunk in chunks(robot.sensor_values, int(math.log(robot.num_sensors, 6))):
-            sensor_block_values.append(chunk[0]) # Retrain if want to use proper Chunks
-        inp[:robot.num_sensors] = np.array(sensor_block_values) / robot.max_sensor_range
+        # sensor_block_values = []
+        # for chunk in chunks(robot.sensor_values, 1):
+        #     sensor_block_values.append(chunk[0]) # Retrain if want to use proper Chunks
+        inp[:robot.num_sensors] = np.array(robot.sensor_values) / robot.max_sensor_range
         # normalize wheel speeds
         inp[robot.num_sensors + 0] = (robot.v_left  - robot.min_speed)/(robot.max_speed-robot.min_speed)
         inp[robot.num_sensors + 1] = (robot.v_right - robot.min_speed)/(robot.max_speed-robot.min_speed)

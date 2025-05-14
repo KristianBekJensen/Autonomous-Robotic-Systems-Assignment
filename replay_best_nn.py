@@ -4,7 +4,7 @@ from config_nn_target_controller import num_sensors, input_size, hidden_size, ou
 
 
 # Load the final population
-with open("populations/final_nn_pop.pkl", "rb") as f:
+with open("navigate_to_goal.pkl", "rb") as f:
     final_pop = pickle.load(f)
 
 
