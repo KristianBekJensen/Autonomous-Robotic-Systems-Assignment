@@ -8,10 +8,12 @@ def fitness(num_collisions: int,
             max_time_steps: int = 5000,
             max_dist_to_target: float = 565,
             map_unexplored: float = 0.0,
+            speed: float = 0.0,
             collision_weight: float = 1.0,
             time_weight: float = 1.0,
             dist_weight: float = 1.0,
-            exploration_weight: float = 1.0) -> float:
+            exploration_weight: float = 1.0,
+            speed_weight: float = 0.0,) -> float:
     
     return (collision_weight * num_collisions
             + time_weight * num_time_steps
