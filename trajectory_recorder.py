@@ -148,21 +148,21 @@ def save_pop(object, filename):
         os.makedirs("populations", exist_ok=True)  # Ensure directory exists
         with open("populations/" + filename, 'wb') as f:
             pickle.dump(object, f)
-        print(f"Trajectory saved to {filename}")
+        print(f"Pop saved to {filename}")
         
     except Exception as e:
-        print(f"Error saving trajectory: {e}")
+        print(f"Error saving Pop: {e}")
 
 def load(filename):
     """Load a trajectory from a file"""
-    if not os.path.exists("populations/" + filename):
+    if not os.path.exists(filename):
         print(f"File {filename} not found")
     try:
         with open("populations/" + filename, 'rb') as f:
             return pickle.load(f)
-        print(f"Loaded trajectory with  waypoints from {filename}")
+        print(f"Loaded {filename}")
     except Exception as e:
-        print(f"Error loading trajectory: {e}")
+        print(f"Error loading: {e}")
 
 def load_pop(filename):
     return load("populations/" + filename)
