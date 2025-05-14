@@ -63,10 +63,14 @@ class Robot:
 
         new_x, new_y, _ = self.check_collisions(new_x, new_y, walls)
         
+        distance_moved = math.sqrt(abs(self.x - new_x)**2 + (self.y - new_y)**2)
+
         # Update state variables after collision handling
         self.x, self.y, self.theta = new_x, new_y, new_theta
         robot_pose = np.array([self.x, self.y, self.theta])
         self.true_poses.append(robot_pose)
+        
+        return distance_moved
 
     def check_If_Collided(self, walls):
         state_change = differential_drive_kinematics(

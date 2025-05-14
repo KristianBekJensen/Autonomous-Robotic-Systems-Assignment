@@ -65,7 +65,7 @@ class Evolution_nn():
     @wrap_curry
     def save_gen(self, pop, filename, interval=1):
         if self.gen % interval == 0:
-            filename += str(self.gen) + ".pkl"
+            filename += str(self.gen)
             save_pop(pop, filename + ".pkl")
             plt.savefig(filename + ".png")
         return pop
@@ -208,9 +208,9 @@ class Evolution_nn():
 
         plt.show(block=False)
         if __name__ == '__main__':
-            cluster = LocalCluster()
+            #cluster = LocalCluster()
             #cluster.scale(5)
-            client = Client(n_workers=4)
+            client = Client()
             # ───────────────────────────
             # Run the EA
             # ───────────────────────────
@@ -233,7 +233,7 @@ class Evolution_nn():
                     ops.pool(size=pop_size),    # keep best pop_size
                     self.grouped_evaluate(client=client, max_individuals_per_chunk=4),               # calls MazeSolver.evaluate()
                     self.gen_tick(),
-                    self.save_gen(filename="pure_map_explored_16pop_gen_", interval=10),
+                    self.save_gen(filename="map_explored1000_speed.5_16pop_gen_", interval=10),
                     probe.FitnessStatsCSVProbe(stream=sys.stdout),
                     *viz_probes
                 ]
