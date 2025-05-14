@@ -39,7 +39,7 @@ class ExploreController:
         y = np.tanh(self.W2.dot(h) + self.b2)    # output in [-1,1]
         return y
     
-    def calcInp(self, robot, target_x, target_y, d_to_target_from_estimate):
+    def calcInp(self, robot, kf, target_x, target_y, d_to_target_from_estimate):
         # --- NEW: controller step ---
         # build input vector ∈ ℝ^input_size
         inp = np.zeros(self.input_size, dtype=float)
@@ -63,12 +63,15 @@ class TargetController(ExploreController):
         super().__init__(genotype, input_size, hidden_size, output_size)
 
     # Overrides
-    def calcInp(self, robot, target_x, target_y, max_dist, d_to_target_from_estimate): 
+    def calcInp(self,robot, kf, target_x, target_y, max_dist, d_to_target_from_estimate): 
         # calculate the distance to target
         # angle to target
-        dx = target_x - robot.x
-        dy = target_y - robot.y
+        #dx = target_x - robot.x
+        dx = target_x - kf.mu[0]
+        #dy = target_y - robot.y
+        dy = target_y - kf.mu[1]
         phi = (math.atan2(dy, dx) - robot.theta) % (2*math.pi)
+        phi = ((phi + np.pi) % (2 * np.pi)) - np.pi
         
         inp = np.zeros(self.input_size, dtype=float)
         # normalize sensors to [0,1]
@@ -258,18 +261,18 @@ class MazeSolver(ScalarProblem):
                 )
                 
 
-                if distance_to_target((target_x,target_y), (robot.x, robot.y)) < 30:
+                """ if distance_to_target((target_x,target_y), (robot.x, robot.y)) < 30:
                     target_x, target_y = np.random.randint(0+PAD, SCREEN_W-PAD), np.random.randint(0+PAD, SCREEN_H-PAD)
-                    targets_collected += 1
+                    targets_collected += 1 """
                 
                 
                 max_dist = math.hypot(SCREEN_W, SCREEN_H)  # normalize max distance
                 d_to_target_from_estimate = distance_to_target((target_x,target_y), (kf.mu[0], kf.mu[1]))
                 if (d_to_target_from_estimate < robot.max_sensor_range) and (self.close_controller is not None):
-                    inp = self.close_controller.calcInp(robot, target_x, target_y, max_dist, d_to_target_from_estimate)
+                    inp = self.close_controller.calcInp(robot, kf, target_x, target_y, max_dist, d_to_target_from_estimate)
                     out = self.close_controller.forward(inp)   # 2 outputs in [−1,1]
                 else:
-                    inp = controller.calcInp(robot, target_x, target_y, max_dist, d_to_target_from_estimate)
+                    inp = controller.calcInp(robot, kf, target_x, target_y, max_dist, d_to_target_from_estimate)
                     out = controller.forward(inp)   # 2 outputs in [−1,1]
 
 
