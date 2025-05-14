@@ -8,9 +8,7 @@ from navigate import navigate
 from kalman_filter import KalmanFilter
 from maps import *
 from robot import Robot
-# Import the trajectory recorder
 from trajectory_recorder import TrajectoryRecorder
-from path_finder import *
 
 # pygame setup
 pygame.init()
