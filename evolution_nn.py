@@ -19,20 +19,12 @@ from graph import PopulationMetricsPlotProbe
 from maze_solver_nn import MazeSolver
 from trajectory_recorder import save_pop, load_pop
 
-from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations
+from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map
 class Evolution_nn():
     def __init__(self):
         self.gen = 0
         self.save = False
         pygame.init()
-    @wrap_curry
-    def MyMethodAsync(self, pop):
-        #while True:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_1]:
-                self.save = not self.save
-                print("saving next gen")
-            return pop
 
     @wrap_curry
     def grouped_evaluate(self, population, client, max_individuals_per_chunk: int = 4 ) -> list:
@@ -84,7 +76,9 @@ class Evolution_nn():
             num_sensors=num_sensors,
             input_size=input_size,
             hidden_size=hidden_size,
-            output_size=output_size
+            output_size=output_size,
+            max_steps=max_steps,
+            random = self.gen if random_map else 44
         )
         # if true load (sample) from previous population ; if false, random
         load_old_pop = False
@@ -100,7 +94,6 @@ class Evolution_nn():
             filename = "final_nn_pop.pkl"
             prev_pop = load_pop(filename)
 
-            print(prev_pop)
 
             if len(prev_pop) < pop_size:
                 chosen = np.random.choice(prev_pop, size=pop_size, replace=True)
@@ -233,7 +226,7 @@ class Evolution_nn():
                     ops.pool(size=pop_size),    # keep best pop_size
                     self.grouped_evaluate(client=client, max_individuals_per_chunk=4),               # calls MazeSolver.evaluate()
                     self.gen_tick(),
-                    self.save_gen(filename="map_explored1000_speed.5_16pop_gen_", interval=10),
+                    self.save_gen(filename="map_explored1000_speed5_col20_16pop_time24_gen_", interval=10),
                     probe.FitnessStatsCSVProbe(stream=sys.stdout),
                     *viz_probes
                 ]
@@ -263,5 +256,4 @@ class Evolution_nn():
 
 
 x = Evolution_nn()
-x.MyMethodAsync()
 x.run()

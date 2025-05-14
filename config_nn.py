@@ -14,6 +14,9 @@ genome_length = (
     + output_size                 # b2
 )
 
+max_steps = 2400
+random_map = False
+
 pop_size    = 16
 generations = 100000
 
