@@ -1,7 +1,7 @@
 import numpy as np
 import pygame
 
-from Fitness import real_to_binary
+from fitness import real_to_binary
 from leap_ec.binary_rep.decoders import BinaryToIntDecoder
 
 def navigate(keys, v_left, v_right):

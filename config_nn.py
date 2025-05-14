@@ -1,4 +1,4 @@
-from Fitness import Fitness
+from fitness import Fitness
 from maze_solver_nn import ExploreController, TargetController
 from trajectory_recorder import load, load_pop
 

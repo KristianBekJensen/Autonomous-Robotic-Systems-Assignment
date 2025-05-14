@@ -1,7 +1,7 @@
 import pygame
 import numpy as np
 import matplotlib.pyplot as plt
-from Fitness import distance_to_target
+from fitness import distance_to_target
 from graph import PopulationMetricsPlotProbe
 from mapping import calculate_mapping_accuracy, get_observed_cells, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate

@@ -3,7 +3,7 @@ import numpy as np
 import pygame
 
 from leap_ec.problem import ScalarProblem
-from Fitness import distance_to_target, compute_map_exploration
+from fitness import distance_to_target, compute_map_exploration
 from mapping import *
 from path_finder import find_path
 from robot import Robot
