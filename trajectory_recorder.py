@@ -1,3 +1,4 @@
+from fileinput import filename
 import numpy as np
 import os
 import pickle
@@ -152,15 +153,18 @@ def save_pop(object, filename):
     except Exception as e:
         print(f"Error saving trajectory: {e}")
 
-def load_pop(filename):
+def load(filename):
     """Load a trajectory from a file"""
     if not os.path.exists("populations/" + filename):
         print(f"File {filename} not found")
-        
     try:
         with open("populations/" + filename, 'rb') as f:
             return pickle.load(f)
         print(f"Loaded trajectory with  waypoints from {filename}")
-        
     except Exception as e:
         print(f"Error loading trajectory: {e}")
+
+def load_pop(filename):
+    return load("populations/" + filename)
+        
+    

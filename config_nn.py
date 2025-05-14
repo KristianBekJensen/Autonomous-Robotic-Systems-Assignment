@@ -1,6 +1,6 @@
 from Fitness import Fitness
 from maze_solver_nn import ExploreController, TargetController
-from trajectory_recorder import load_pop
+from trajectory_recorder import load, load_pop
 
 # Number of sensors 
 num_sensors = 6
@@ -13,7 +13,7 @@ output_size  = 2
 
 #Controllers
 close_controller = TargetController( #or None
-          genotype=min(load_pop("navigate_to_goal.pkl")).phenome,
+          genotype=min(load("navigate_to_goal.pkl")).phenome,
           input_size= 6 + 2 + 1 + 1,
           hidden_size=hidden_size,
           output_size=output_size
