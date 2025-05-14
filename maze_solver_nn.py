@@ -74,12 +74,12 @@ class MazeSolver(ScalarProblem):
             output_size=self.output_size
         )
 
-        
         fitness_score = 0.0
         number_runs = 1
         
         for i in range(number_runs):
 
+            total_speed=0
             # --- Pygame & robot setup (same as before) ---
             pygame.init()
             clock = pygame.time.Clock()
@@ -241,8 +241,10 @@ class MazeSolver(ScalarProblem):
                 distance_to_goal += distance_to_target((robot.x,robot.y),(target_x,target_y))
                 if distance_to_goal < robot.radius:
                     break
-                robot.move(walls+obstacles)
 
+                speed = robot.move(walls+obstacles)
+                if speed < 4:
+                    total_speed += 5
 
                 if self.visualize_evaluation:
                     grid_probability_grey_scale = probs_to_grey_scale(grid_prob)
@@ -262,16 +264,18 @@ class MazeSolver(ScalarProblem):
             map_unexplored = compute_map_exploration(grid_prob, threshold=0.3)
             distance_to_goal = distance_to_goal / steps
 
-
             # final score
             fitness_score += fitness(
                 num_collisions=collisions,
                 num_time_steps=steps,
                 dist_to_target=distance_to_goal,
                 map_unexplored=map_unexplored,
+                speed = total_speed,
                 collision_weight=0.0,
                 time_weight=0.0,
                 dist_weight=0.0,
-                exploration_weight=1000.0
+                exploration_weight=1000.0,
+                speed_weight=0.5 
+                
             )
         return fitness_score / number_runs,  avg_sigma/steps/number_runs
