@@ -79,7 +79,7 @@ class Evolution_nn():
     @wrap_curry
     def save_gen(self, pop, filename, interval=1):
         if self.gen % interval == 0:
-            filename += str(self.gen)
+            filename += "_gen" + str(self.gen)
             save_pop(pop, filename + ".pkl")
             plt.savefig(filename + ".png")
         return pop
