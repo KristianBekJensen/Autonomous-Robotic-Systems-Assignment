@@ -39,7 +39,7 @@ class ExploreController:
         y = np.tanh(self.W2.dot(h) + self.b2)    # output in [-1,1]
         return y
     
-    def calcInp(self, robot, kf, target_x, target_y, d_to_target_from_estimate):
+    def calcInp(self, robot, kf, target_x, target_y, max_dist, d_to_target_from_estimate):
         # --- NEW: controller step ---
         # build input vector ∈ ℝ^input_size
         inp = np.zeros(self.input_size, dtype=float)

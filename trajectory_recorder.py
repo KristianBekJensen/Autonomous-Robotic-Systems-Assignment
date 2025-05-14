@@ -154,11 +154,10 @@ def save_pop(object, filename):
         print(f"Error saving Pop: {e}")
 
 def load(filename):
-    """Load a trajectory from a file"""
     if not os.path.exists(filename):
         print(f"File {filename} not found")
     try:
-        with open("populations/" + filename, 'rb') as f:
+        with open(filename, 'rb') as f:
             return pickle.load(f)
         print(f"Loaded {filename}")
     except Exception as e:
