@@ -219,7 +219,14 @@ class MazeSolver(ScalarProblem):
                 # build input vector ∈ ℝ^input_size
                 inp = np.zeros(self.input_size, dtype=float)
                 # normalize sensors to [0,1]
-                inp[:self.num_sensors] = np.array(robot.sensor_values)/robot.max_sensor_range
+                def chunks(lst, n):
+                    """Yield successive n-sized chunks from lst."""
+                    for i in range(0, len(lst), n):
+                        yield lst[i:i + n]
+                sensor_block_values = []
+                for chunk in chunks(robot.sensor_values, int(math.log(robot.num_sensors, 6))):
+                    sensor_block_values.append(min(chunk))
+                inp[:self.num_sensors] = np.array(sensor_block_values) / robot.max_sensor_range
                 # normalize wheel speeds
                 inp[self.num_sensors + 0] = (robot.v_left  - min_speed)/(max_speed-min_speed)
                 inp[self.num_sensors + 1] = (robot.v_right - min_speed)/(max_speed-min_speed)
