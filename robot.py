@@ -19,6 +19,8 @@ class Robot:
                  axel_length: float = 10.0,
                  max_sensor_range: float = 100.0,
                  num_sensors: int = 12,
+                 min_speed = 0,
+                 max_speed = 6
                 ):
         
         """Initialize the robot with given parameters."""
@@ -36,6 +38,8 @@ class Robot:
         # Motion attributes
         self.v_left = 0.0
         self.v_right = 0.0
+        self.min_speed = min_speed
+        self.max_speed = max_speed
         
         # Sensors
         self.num_sensors = num_sensors

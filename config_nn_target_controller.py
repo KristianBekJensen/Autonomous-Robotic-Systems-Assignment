@@ -7,19 +7,14 @@ num_sensors = 6
 
 # MLP dimensions (must match maze_solver.py)
 # input = num_sensor + wheel left right
-input_size   = 6 + 2 #+ 1 + 1
+input_size   = 6 + 2 + 1 + 1
 hidden_size  = 10
 output_size  = 2
 
 #Controllers
-close_controller = TargetController( #or None
-          genotype=min(load_pop("navigate_to_goal.pkl")).phenome,
-          input_size= 6 + 2 + 1 + 1,
-          hidden_size=hidden_size,
-          output_size=output_size
-      )
+close_controller = None
 
-controller = ExploreController
+controller = TargetController
 
 # calculate total genome length:
 genome_length = (

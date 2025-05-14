@@ -16,16 +16,38 @@ from leap_ec.ops import UniformCrossover, tournament_selection, clone
 
 from Custom_Individual import Custom_Individual
 from graph import PopulationMetricsPlotProbe
-from maze_solver_nn import MazeSolver
+from maze_solver_nn import MazeSolver, ExploreController
 from trajectory_recorder import save_pop, load_pop
 
-from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map
+from config_nn_target_controller import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map, close_controller, start_pop_filename, controller, fitness_func
 class Evolution_nn():
     def __init__(self):
         self.gen = 0
-        self.save = False
-        pygame.init()
-
+    
+    # ───────────────────────────
+    # Initializer: Load from previous population
+    # ───────────────────────────
+    def init_genome_from_file(self):
+        """
+        Load genomes from previous final population file.
+        If fewer than pop_size individuals are present, sample with replacement.
+        """
+        prev_pop = load_pop(start_pop_filename)
+        if len(prev_pop) < pop_size:
+            chosen = np.random.choice(prev_pop, size=pop_size, replace=True)
+        else:
+            chosen = np.random.choice(prev_pop, size=pop_size, replace=False)
+        # Return one genome at a time (LEAP will call this repeatedly)
+        for ind in chosen:
+            yield ind.genome
+    
+    def init_genome(self):
+        if start_pop_filename:
+            return next(self.init_genome_from_file())
+        else:
+            #return np.random.uniform(-1.0, 1.0, size=genome_length)
+            return  np.random.normal(0.0, 0.1, size=genome_length)
+    
     @wrap_curry
     def grouped_evaluate(self, population, client, max_individuals_per_chunk: int = 4 ) -> list:
         """Evaluate the population by sending groups of multiple individuals to
@@ -70,6 +92,7 @@ class Evolution_nn():
         # ───────────────────────────
         # Create the problem
         # ───────────────────────────
+        
         problem = MazeSolver(
             maximize=False,
             visualization=False,
@@ -78,42 +101,11 @@ class Evolution_nn():
             hidden_size=hidden_size,
             output_size=output_size,
             max_steps=max_steps,
+            close_controller=close_controller,
+            controller_type=controller,
+            fitness_func=fitness_func,
             random = self.gen if random_map else 44
         )
-        # if true load (sample) from previous population ; if false, random
-        load_old_pop = False
-
-        # ───────────────────────────
-        # Initializer: Load from previous population
-        # ───────────────────────────
-        def init_genome_from_file():
-            """
-            Load genomes from previous final population file.
-            If fewer than pop_size individuals are present, sample with replacement.
-            """
-            filename = "final_nn_pop.pkl"
-            prev_pop = load_pop(filename)
-
-
-            if len(prev_pop) < pop_size:
-                chosen = np.random.choice(prev_pop, size=pop_size, replace=True)
-            else:
-                chosen = np.random.choice(prev_pop, size=pop_size, replace=False)
-
-            # Return one genome at a time (LEAP will call this repeatedly)
-            for ind in chosen:
-                yield ind.genome
-
-
-        # Create an iterator of genomes
-        genome_iterator = init_genome_from_file()
-
-        def init_genome():
-            if load_old_pop:
-                return next(genome_iterator)
-            else:
-                #return np.random.uniform(-1.0, 1.0, size=genome_length)
-                return  np.random.normal(0.0, 0.1, size=genome_length)
 
 
         # ───────────────────────────
@@ -213,7 +205,7 @@ class Evolution_nn():
                 problem=problem,
                 representation=Representation(
                     # each call returns ONE genome of length genome_length
-                    initialize=init_genome,
+                    initialize=self.init_genome,
                     individual_cls=Custom_Individual
                 ),
                 pipeline=[
@@ -226,7 +218,7 @@ class Evolution_nn():
                     ops.pool(size=pop_size),    # keep best pop_size
                     self.grouped_evaluate(client=client, max_individuals_per_chunk=4),               # calls MazeSolver.evaluate()
                     self.gen_tick(),
-                    self.save_gen(filename="map_explored1000_speed5_col20_16pop_time24_gen_", interval=10),
+                    self.save_gen(filename="multi_controller_target500_t24_r2_p16_c_0", interval=10),
                     probe.FitnessStatsCSVProbe(stream=sys.stdout),
                     *viz_probes
                 ]

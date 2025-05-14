@@ -1,20 +1,16 @@
 import math
-import time
 import numpy as np
 import pygame
 
 from leap_ec.problem import ScalarProblem
-from fitness_nn import distance_to_target, fitness, compute_map_exploration
-
+from Fitness import distance_to_target, compute_map_exploration
 from mapping import *
 from path_finder import find_path
 from robot import Robot
 from kalman_filter import KalmanFilter
 from maps import draw_map
 
-class NeuralController:
-    
-
+class ExploreController:
     def __init__(self, genotype, input_size, hidden_size, output_size):
         self.input_size  = input_size
         self.hidden_size = hidden_size
@@ -42,6 +38,57 @@ class NeuralController:
         h = np.tanh(self.W1.dot(x) + self.b1)    # hidden activations
         y = np.tanh(self.W2.dot(h) + self.b2)    # output in [-1,1]
         return y
+    
+    def calcInp(self, robot, target_x, target_y, d_to_target_from_estimate):
+        # --- NEW: controller step ---
+        # build input vector ∈ ℝ^input_size
+        inp = np.zeros(self.input_size, dtype=float)
+        # normalize sensors to [0,1]
+        def chunks(lst, n):
+            """Yield successive n-sized chunks from lst."""
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+        sensor_block_values = []
+        for chunk in chunks(robot.sensor_values, int(math.log(robot.num_sensors, 6))):
+            sensor_block_values.append(min(chunk))
+        inp[:robot.num_sensors] = np.array(sensor_block_values) / robot.max_sensor_range
+        # normalize wheel speeds
+        inp[robot.num_sensors + 0] = (robot.v_left  - robot.min_speed)/(robot.max_speed-robot.min_speed)
+        inp[robot.num_sensors + 1] = (robot.v_right - robot.min_speed)/(robot.max_speed-robot.min_speed)
+        
+        return inp
+
+class TargetController(ExploreController):
+    def __init__(self, genotype, input_size, hidden_size, output_size):
+        super().__init__(genotype, input_size, hidden_size, output_size)
+
+    # Overrides
+    def calcInp(self, robot, target_x, target_y, max_dist, d_to_target_from_estimate): 
+        # calculate the distance to target
+        # angle to target
+        dx = target_x - robot.x
+        dy = target_y - robot.y
+        phi = (math.atan2(dy, dx) - robot.theta) % (2*math.pi)
+        
+        inp = np.zeros(self.input_size, dtype=float)
+        # normalize sensors to [0,1]
+        def chunks(lst, n):
+            """Yield successive n-sized chunks from lst."""
+            for i in range(0, len(lst), n):
+                yield lst[i:i + n]
+        
+        sensor_block_values = []
+        for chunk in chunks(robot.sensor_values, int(math.log(robot.num_sensors, 6))):
+            sensor_block_values.append(chunk[0]) # Retrain if want to use proper Chunks
+        inp[:robot.num_sensors] = np.array(sensor_block_values) / robot.max_sensor_range
+        # normalize wheel speeds
+        inp[robot.num_sensors + 0] = (robot.v_left  - robot.min_speed)/(robot.max_speed-robot.min_speed)
+        inp[robot.num_sensors + 1] = (robot.v_right - robot.min_speed)/(robot.max_speed-robot.min_speed)
+        # normalize ang
+        # distance and angle to target from our estimated position 
+        inp[robot.num_sensors + 2] = d_to_target_from_estimate / max_dist
+        inp[robot.num_sensors + 3] = phi / math.pi
+        return inp
 
 
 class MazeSolver(ScalarProblem):
@@ -57,21 +104,26 @@ class MazeSolver(ScalarProblem):
                  hidden_size: int,
                  output_size: int,
                  max_steps: int,
+                 controller_type,
+                 fitness_func,
+                 close_controller = None,
                  random = 44):
-        super().__init__(maximize=maximize)
+        
         self.visualize_evaluation = visualization
         self.num_sensors = num_sensors
-
-        # new continuous controller: sensors + 2 wheel speeds + 1 distance to target + 1 angle to target
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.max_steps = max_steps
         self.random = random
+        self.close_controller = close_controller
+        self.controller_type = controller_type
+        self.fitness_func = fitness_func
+        super().__init__(maximize=maximize)
 
     def evaluate(self, phenome):
-        # Build controller from genotype
-        explore_controller = NeuralController(
+        # # Build controller from genotype
+        controller = self.controller_type(
             genotype=phenome,
             input_size=self.input_size,
             hidden_size=self.hidden_size,
@@ -79,7 +131,7 @@ class MazeSolver(ScalarProblem):
         )
 
         fitness_score = 0.0
-        number_runs = 1
+        number_runs = 2
         
         for i in range(number_runs):
 
@@ -113,7 +165,9 @@ class MazeSolver(ScalarProblem):
                         radius=15,
                         axel_length=10,
                         max_sensor_range=100,
-                        num_sensors=self.num_sensors)
+                        num_sensors=self.num_sensors,
+                        min_speed = min_speed,
+                        max_speed = max_speed)
             robot.v_left  = min_speed
             robot.v_right = min_speed
 
@@ -149,7 +203,7 @@ class MazeSolver(ScalarProblem):
 
             pygame.display.flip()
 
-            
+            targets_collected = 0
             distance_to_goal = 0.0
 
         
@@ -203,44 +257,22 @@ class MazeSolver(ScalarProblem):
                     process_noise                # ← matches 7th param
                 )
                 
-            
 
-                # calculate the distance to target
-                d_to_target_from_estimate = distance_to_target((kf.mu[0], kf.mu[1]),(target_x,target_y))
-
-                # angle to target
-                dx = target_x - robot.x
-                dy = target_y - robot.y
-                phi = (math.atan2(dy, dx) - robot.theta) % (2*math.pi)
-                phi = ((phi + np.pi) % (2 * np.pi)) - np.pi
-            
-
-                # --- NEW: controller step ---
-                # build input vector ∈ ℝ^input_size
-                inp = np.zeros(self.input_size, dtype=float)
-                # normalize sensors to [0,1]
-                def chunks(lst, n):
-                    """Yield successive n-sized chunks from lst."""
-                    for i in range(0, len(lst), n):
-                        yield lst[i:i + n]
-                sensor_block_values = []
-                for chunk in chunks(robot.sensor_values, int(math.log(robot.num_sensors, 6))):
-                    sensor_block_values.append(min(chunk))
-                inp[:self.num_sensors] = np.array(sensor_block_values) / robot.max_sensor_range
-                # normalize wheel speeds
-                inp[self.num_sensors + 0] = (robot.v_left  - min_speed)/(max_speed-min_speed)
-                inp[self.num_sensors + 1] = (robot.v_right - min_speed)/(max_speed-min_speed)
-                # normalize angle error
+                if distance_to_target((target_x,target_y), (robot.x, robot.y)) < 30:
+                    target_x, target_y = np.random.randint(0+PAD, SCREEN_W-PAD), np.random.randint(0+PAD, SCREEN_H-PAD)
+                    targets_collected += 1
                 
-                # distance and angle to target from our estimated position 
-                # max_dist = math.hypot(SCREEN_W, SCREEN_H)  # normalize max distance
-                # inp[self.num_sensors+2] = d_to_target_from_estimate / max_dist 
-                # inp[self.num_sensors + 3] = phi / math.pi
-                              
+                
+                max_dist = math.hypot(SCREEN_W, SCREEN_H)  # normalize max distance
+                d_to_target_from_estimate = distance_to_target((target_x,target_y), (kf.mu[0], kf.mu[1]))
+                if (d_to_target_from_estimate < robot.max_sensor_range) and (self.close_controller is not None):
+                    inp = self.close_controller.calcInp(robot, target_x, target_y, max_dist, d_to_target_from_estimate)
+                    out = self.close_controller.forward(inp)   # 2 outputs in [−1,1]
+                else:
+                    inp = controller.calcInp(robot, target_x, target_y, max_dist, d_to_target_from_estimate)
+                    out = controller.forward(inp)   # 2 outputs in [−1,1]
 
 
-
-                out = explore_controller.forward(inp)   # 2 outputs in [−1,1]
                 # map back to [min_speed,max_speed]
                 robot.v_left  = min_speed + (out[0]+1)/2*(max_speed-min_speed)
                 robot.v_right = min_speed + (out[1]+1)/2*(max_speed-min_speed)
@@ -275,17 +307,12 @@ class MazeSolver(ScalarProblem):
             distance_to_goal = distance_to_goal / steps
 
             # final score
-            fitness_score += fitness(
+            fitness_score += self.fitness_func(
                 num_collisions=collisions,
                 num_time_steps=steps,
                 dist_to_target=distance_to_goal,
                 map_unexplored=map_unexplored,
                 speed = total_speed,
-                collision_weight=20.0,
-                time_weight=0.0,
-                dist_weight=0.0,
-                exploration_weight=1000.0,
-                speed_weight=0.5 
-                
+                targets_collected = targets_collected
             )
         return fitness_score / number_runs,  avg_sigma/steps/number_runs
