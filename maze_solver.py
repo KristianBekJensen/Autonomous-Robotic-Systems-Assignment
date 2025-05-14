@@ -50,8 +50,8 @@ class ExploreController:
         return y
     
     def calcInp(self, robot, kf, target_x, target_y, max_dist, d_to_target_from_estimate):
-        # --- NEW: controller step ---
-        # build input vector ∈ ℝ^input_size
+        """ Calculate exploration network input vector for exploration mode. """
+        
         inp = np.zeros(self.input_size, dtype=float)
 
         def chunks(lst, n):
