@@ -1,6 +1,6 @@
 import pickle
 import config_nn_target_controller as conf
-from maze_solver_nn import MazeSolver
+from maze_solver import MazeSolver
 
 # load the final saved population
 with open("navigate_to_goal.pkl", "rb") as f:

@@ -16,7 +16,7 @@ from leap_ec.ops import UniformCrossover, tournament_selection, clone
 
 from Custom_Individual import Custom_Individual
 from graph import PopulationMetricsPlotProbe
-from maze_solver_nn import MazeSolver, ExploreController
+from maze_solver import MazeSolver, ExploreController
 from trajectory_recorder import save_pop, load_pop
 # from config_nn_target_controller
 from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map, close_controller, start_pop_filename, controller, fitness_func, save_as
