@@ -95,10 +95,8 @@ walls, landmarks, obstacles = draw_map(
     wall_thickness=WALL_THICKNESS,
     p_landmark=0.25,
     n_obstacles=25,
-    obstacle_mu=7.5,
-    obstacle_sigma=1.5,
     obstacle_color=(0,0,0),
-    random_seed=42
+    random_seed=44
 )
 
 # Trajectory mode info (whether robot is controlled manually by the user or in recording/playback mode)

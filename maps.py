@@ -2,19 +2,14 @@ import pygame
 import random
 import numpy as np
 
-def clamp(value, minimum, maximum):
-    return max(minimum, min(value, maximum))
-
 def draw_map(screen, num_blocks_w, num_blocks_h, 
-    pad=20, 
+    pad=20,
     wall_color=(0, 0, 0), 
     wall_h_prob=0.2,
     wall_v_prob=0.2,
     wall_thickness=1,
     p_landmark=0.25,
     n_obstacles=100,
-    obstacle_mu=7.5,
-    obstacle_sigma=1.5,
     obstacle_color=(0,0,0),
     random_seed=42,
 ):
@@ -135,8 +130,6 @@ def draw_map(screen, num_blocks_w, num_blocks_h,
         area = random.choice(free_areas)
         w = 2 * wall_thickness
         h = 2 * wall_thickness
-        # w = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
-        # h = clamp(random.gauss(obstacle_mu, obstacle_sigma), 5, 10)
         ox = random.uniform(area.x, area.x + area.width  - w)
         oy = random.uniform(area.y, area.y + area.height - h)
         orect = pygame.Rect(int(ox), int(oy), int(w), int(h))
@@ -155,8 +148,3 @@ def draw_cells(cells, screen, block_width, color = "red"):
     for cell in cells:
         rect = pygame.Rect( cell[0] * block_width, cell[1] * block_width, block_width, block_width)
         pygame.draw.rect(screen, color, rect, 1)  # Draw the cell with a red border
-
-def draw_cells_filled(cells, screen, block_width, color = "red"):
-    for cell in cells:
-        rect = pygame.Rect( cell[0] * block_width, cell[1] * block_width, block_width, block_width)
-        pygame.draw.rect(screen, color, rect)  # Draw the cell with a red border
