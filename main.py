@@ -1,6 +1,8 @@
 import pygame
 import numpy as np
 import matplotlib.pyplot as plt
+from Fitness import distance_to_target
+from graph import PopulationMetricsPlotProbe
 from mapping import calculate_mapping_accuracy, get_observed_cells, log_odds_to_prob, probs_to_grey_scale
 from navigate import navigate
 from kalman_filter import KalmanFilter
@@ -110,9 +112,14 @@ pygame.display.flip()
 
 accuracy_values = [] # keep track of mapping accuracy over time
 
+sigma_over_time = []
+error_est = []
+steps = 0
+
 # Game Loop 
 running = True
 while running:
+    steps += 1
     current_time = pygame.time.get_ticks()
     
     #check for close game
@@ -175,7 +182,6 @@ while running:
             verticalalignment='bottom',
             )
         plt.grid(True)
-        plt.show()
     
     # calculate mapping accuracy at each time step and append to accuracy values
     accuracy_values.append(calculate_mapping_accuracy(grid_probability, walls, obstacles, SCREEN_W, SCREEN_H, GRID_SIZE))
@@ -229,6 +235,7 @@ while running:
         robot.v_right = v_right
 
     # Move the robot and execute collision handling
+    error_est.append(distance_to_target(estimated_pose[:2], (robot.x, robot.y)))
     robot.move(environment_objects)
 
     # Add uncertainty ellipse to the robot in intervals of SAMPLE_INTERVAL
@@ -267,6 +274,10 @@ while running:
             for j in range(len(grid_probability_grey_scale[i])):
                 color = grid_probability_grey_scale[i][j]
                 pygame.draw.rect(second_surface, (color,color,color), (i*GRID_SIZE, j*GRID_SIZE, GRID_SIZE, GRID_SIZE))
+   
+    sigma_over_time.append(kf.sigma[0][0])
+       
+
 
     # Draw the robot's trajectory
     if draw_estimated_path:
@@ -294,3 +305,10 @@ if trajectory_recorder.is_recording():
     trajectory_recorder.save_trajectory(trajectory_filename)
 
 pygame.quit()
+
+fig, axes  = plt.subplots(1, 2, figsize=(14,5))
+
+axes[0].plot(error_est)
+
+axes[1].plot(sigma_over_time)
+plt.show()
