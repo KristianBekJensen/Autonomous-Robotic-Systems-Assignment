@@ -1,3 +1,4 @@
+from matplotlib.pylab import maximum_sctype
 from Fitness import Fitness
 from maze_solver_nn import ExploreController, TargetController
 from trajectory_recorder import load_pop
@@ -33,10 +34,19 @@ pop_size    = 16
 generations = 100000
 
 # fitness
-fitness = Fitness(collision_weight=0.0,
-                time_weight=0.0,
-                dist_weight=0.0,
-                exploration_weight=1000.0,
-                speed_weight=0.5 ,
-                targets_collected_weight = -500)
+collision_weight=0.0
+time_weight=0.0
+dist_weight=0.0
+exploration_weight=1000.0
+speed_weight=0.5 
+targets_collected_weight=-500
+
+fitness = Fitness(collision_weight=collision_weight,
+                time_weight=time_weight,
+                dist_weight=dist_weight,
+                exploration_weight=exploration_weight,
+                speed_weight=speed_weight,
+                targets_collected_weight=targets_collected_weight)
 fitness_func = fitness.linar_fitness
+
+save_as = "target_" + "sensors" + num_sensors + "_Msteps"+ max_steps/10 + "_r" + "T" if random_map else "F" + "_P" + pop_size + "_c" + collision_weight + "_e" + exploration_weight/10 + "_s" + speed_weight + "_t" + targets_collected_weight

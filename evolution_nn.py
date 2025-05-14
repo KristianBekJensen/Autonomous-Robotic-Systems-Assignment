@@ -18,8 +18,8 @@ from Custom_Individual import Custom_Individual
 from graph import PopulationMetricsPlotProbe
 from maze_solver_nn import MazeSolver, ExploreController
 from trajectory_recorder import save_pop, load_pop
-
-from config_nn_target_controller import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map, close_controller, start_pop_filename, controller, fitness_func
+# from config_nn_target_controller
+from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map, close_controller, start_pop_filename, controller, fitness_func, save_as
 class Evolution_nn():
     def __init__(self):
         self.gen = 0
@@ -218,7 +218,7 @@ class Evolution_nn():
                     ops.pool(size=pop_size),    # keep best pop_size
                     self.grouped_evaluate(client=client, max_individuals_per_chunk=4),               # calls MazeSolver.evaluate()
                     self.gen_tick(),
-                    self.save_gen(filename="multi_controller_target500_t24_r2_p16_c_0", interval=10),
+                    self.save_gen(filename=save_as, interval=10),
                     probe.FitnessStatsCSVProbe(stream=sys.stdout),
                     *viz_probes
                 ]
