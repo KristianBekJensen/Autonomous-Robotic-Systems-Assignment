@@ -142,7 +142,7 @@ class MazeSolver(ScalarProblem):
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.max_steps = max_steps
-        self.random = random
+        self.random_seed = random
         self.close_controller = close_controller
         self.controller_type = controller_type
         self.fitness_func = fitness_func
@@ -233,7 +233,7 @@ class MazeSolver(ScalarProblem):
                 pad=PAD, 
                 wall_thickness=4, 
                 n_obstacles=0, # no obstacles, just walls
-                random_seed=self.random, # training on different maps
+                random_seed=self.random_seed, # generate a specific map from seed
                 p_landmark=1.0, # helping the robot with beacons at every corner
                 wall_h_prob=0.2, # 20% probability of presence of horizontal walls
                 wall_v_prob=0.2 # 20% probability of presence of vertical walls
