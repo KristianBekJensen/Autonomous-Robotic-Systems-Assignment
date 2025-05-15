@@ -142,7 +142,7 @@ class MazeSolver(ScalarProblem):
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.max_steps = max_steps
-        self.random = random
+        self.random_seed = random
         self.close_controller = close_controller
         self.controller_type = controller_type
         self.fitness_func = fitness_func

@@ -36,8 +36,8 @@ clock = pygame.time.Clock()
 x, y, theta = 100, 100, 0 # initial pose
 initial_pose = np.array([x, y, theta])
 v_left, v_right = 0, 0 # initial wheel speeds
-r = 20 # robot radius
-axel_length = 15 # axel length
+r = 15 # robot radius
+axel_length = 10 # axel length
 
 # parameters of the robot's distance sensors 
 max_sensor_range, num_sensors = 100, 48
@@ -50,7 +50,7 @@ robot = Robot(x, y, theta, r, axel_length, max_sensor_range, num_sensors) # rn g
 process_noise = 0.01
 position_measurement_noise = 0.01
 theta_measurement_noise = 0.005
-R = np.diag([process_noise, process_noise, theta_measurement_noise])  # Process noise
+R = np.diag([0.1, process_noise, theta_measurement_noise])  # Process noise
 Q = np.diag([position_measurement_noise, position_measurement_noise, theta_measurement_noise])  # Measurement noise
 initial_covariance = np.diag([0.1, 0.1, 0.1])  # low uncertainty for Local Localization
 SAMPLE_INTERVAL = 2000 # time intervall for adding and visualizing uncertainty ellipse (Sigma)
@@ -95,7 +95,7 @@ walls, landmarks, obstacles = draw_map(
     wall_h_prob=0.2,
     wall_v_prob=0.2,
     wall_thickness=WALL_THICKNESS,
-    p_landmark=0.25,
+    p_landmark=0.20,
     n_obstacles=25,
     obstacle_color=(0,0,0),
     random_seed=44
@@ -314,10 +314,3 @@ if trajectory_recorder.is_recording():
     trajectory_recorder.save_trajectory(trajectory_filename)
 
 pygame.quit()
-
-fig, axes  = plt.subplots(1, 2, figsize=(14,5))
-
-axes[0].plot(error_est)
-
-axes[1].plot(sigma_over_time)
-plt.show()

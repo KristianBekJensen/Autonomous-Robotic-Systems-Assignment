@@ -77,7 +77,7 @@ class Evolution():
 
     def run(self):
         """ create evolutionary algorithm components and run it. training params
-        are set in config_nn.py """
+        are set in config.py """
 
         # create the problem        
         problem = MazeSolver(
