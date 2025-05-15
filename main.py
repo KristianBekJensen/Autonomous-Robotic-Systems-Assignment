@@ -13,6 +13,10 @@ from trajectory_recorder import TrajectoryRecorder
 # pygame setup
 pygame.init()
 
+plt.ion()  # Enable interactive mode for live plotting
+plot_open = False
+
+
 # Set the fonts 
 default_font = pygame.font.SysFont('Arial', 10)
 info_font = pygame.font.SysFont('Arial', 18)
@@ -159,25 +163,34 @@ while running:
     elif keys[pygame.K_5]:
         draw_sensors = not draw_sensors
     elif keys[pygame.K_6]:
-        # visualize the mapping accuracy
-        x = list(range(len(accuracy_values)))
-        y = accuracy_values
+        if not plot_open:
+            plt.figure("Mapping Accuracy")
+            plot_open = True
+        else:
+            try:
+                plt.figure("Mapping Accuracy")
+            except:
+                plot_open = False
 
-        # Plotting
-        plt.plot(x, y, linestyle='-')
-        plt.title('Avg Error')
+        plt.clf()  # clear the figure to update live
+        plt.plot(accuracy_values, linestyle='-')
+        plt.title('Average Mapping Error')
         plt.xlabel('Time Step')
         plt.ylabel('Value')
-        plt.plot(x[-1], y[-1], 'o')
-        plt.annotate('Final value: '+ str(float.__round__ (y[-1], 4)),
-            xy=(x[-1], y[-1]),  # theta, radius
-            xytext=(0.65, 0.2),    # fraction, fraction
-            textcoords='figure fraction',
-            arrowprops=dict(facecolor='black', shrink=0.05),
-            horizontalalignment='left',
-            verticalalignment='bottom',
-            )
+        if accuracy_values:
+            plt.plot(len(accuracy_values)-1, accuracy_values[-1], 'o')
+            plt.annotate(f'Final value: {accuracy_values[-1]:.4f}',
+                         xy=(len(accuracy_values)-1, accuracy_values[-1]),
+                         xytext=(0.65, 0.2),
+                         textcoords='figure fraction',
+                         arrowprops=dict(facecolor='black', shrink=0.05),
+                         horizontalalignment='left',
+                         verticalalignment='bottom')
         plt.grid(True)
+        plt.show(block=False)
+        plt.pause(0.001)
+
+
     
     # calculate mapping accuracy at each time step and append to accuracy values
     accuracy_values.append(calculate_mapping_accuracy(grid_probability, walls, obstacles, SCREEN_W, SCREEN_H, GRID_SIZE))
