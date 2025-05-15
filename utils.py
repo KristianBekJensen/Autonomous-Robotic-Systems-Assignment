@@ -20,12 +20,12 @@ def draw_covariance_ellipse(surface, mean, cov, n_std=2.0, num_points=36, color=
 
     pts = []
     for i in range(num_points):
-        θ = 2 * math.pi * i / num_points
-        x_ = rx * math.cos(θ)
-        y_ = ry * math.sin(θ)
+        theta = 2 * math.pi * i / num_points
+        x_ = rx * math.cos(theta)
+        y_ = ry * math.sin(theta)
         # rotate then translate
-        xr =  x_*ca - y_*sa + cx
-        yr =  x_*sa + y_*ca + cy
+        xr = x_*ca - y_*sa + cx
+        yr = x_*sa + y_*ca + cy
         pts.append((xr, yr))
 
     # draw as a polygon

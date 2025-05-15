@@ -95,7 +95,7 @@ walls, landmarks, obstacles = draw_map(
     wall_h_prob=0.2,
     wall_v_prob=0.2,
     wall_thickness=WALL_THICKNESS,
-    p_landmark=0.25,
+    p_landmark=0.20,
     n_obstacles=25,
     obstacle_color=(0,0,0),
     random_seed=44
@@ -314,28 +314,3 @@ if trajectory_recorder.is_recording():
     trajectory_recorder.save_trajectory(trajectory_filename)
 
 pygame.quit()
-
-# fig, axes  = plt.subplots(1, 2, figsize=(14,5))
-
-# axes[0].plot(error_est)
-# axes[1].plot(sigma_over_time)
-# plt.show()
-
-# disable interactive mode so that show() will block
-plt.ioff()
-
-# create one figure & axis
-fig, ax = plt.subplots(figsize=(8,5))
-
-# plot both series on the same axes
-ax.plot(error_est, label='Estimation Error')
-ax.plot(sigma_over_time, label='Uncertainty (σₓₓ)')
-
-ax.set_xlabel('Time Step')
-ax.set_ylabel('Value')
-ax.set_title('Estimation Error vs. Uncertainty Over Time')
-ax.legend()
-ax.grid(True)
-fig.tight_layout()
-
-plt.show()
