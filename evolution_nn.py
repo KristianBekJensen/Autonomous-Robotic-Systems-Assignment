@@ -1,25 +1,21 @@
-# evolution_nn.py
-
 import os
 import sys
-from distributed import Client, LocalCluster
 import numpy as np
-import pygame
 import graph
+import config_nn as conf
 from matplotlib import pyplot as plt
 from leap_ec.distrib import synchronous
-from leap_ec import Representation, test_env_var
+from leap_ec import Representation
 from leap_ec import ops, probe
 from leap_ec.algorithm import generational_ea
 from leap_ec.util import wrap_curry
 from leap_ec.ops import UniformCrossover, tournament_selection, clone
-
+from distributed import Client
 from Custom_Individual import Custom_Individual
 from graph import PopulationMetricsPlotProbe
-from maze_solver import MazeSolver, ExploreController
+from maze_solver import MazeSolver
 from trajectory_recorder import save_pop, load_pop
-# from config_nn_target_controller
-from config_nn import num_sensors, input_size, hidden_size, output_size, genome_length, pop_size, generations, max_steps, random_map, close_controller, start_pop_filename, controller, fitness_func, save_as
+
 class Evolution_nn():
     def __init__(self):
         self.gen = 0
@@ -32,21 +28,21 @@ class Evolution_nn():
         Load genomes from previous final population file.
         If fewer than pop_size individuals are present, sample with replacement.
         """
-        prev_pop = load_pop(start_pop_filename)
-        if len(prev_pop) < pop_size:
-            chosen = np.random.choice(prev_pop, size=pop_size, replace=True)
+        prev_pop = load_pop(conf.start_pop_filename)
+        if len(prev_pop) < conf.pop_size:
+            chosen = np.random.choice(prev_pop, size=conf.pop_size, replace=True)
         else:
-            chosen = np.random.choice(prev_pop, size=pop_size, replace=False)
+            chosen = np.random.choice(prev_pop, size=conf.pop_size, replace=False)
         # Return one genome at a time (LEAP will call this repeatedly)
         for ind in chosen:
             yield ind.genome
     
     def init_genome(self):
-        if start_pop_filename:
+        if conf.start_pop_filename:
             return next(self.init_genome_from_file())
         else:
             #return np.random.uniform(-1.0, 1.0, size=genome_length)
-            return  np.random.normal(0.0, 0.1, size=genome_length)
+            return  np.random.normal(0.0, 0.1, size=conf.genome_length)
     
     @wrap_curry
     def grouped_evaluate(self, population, client, max_individuals_per_chunk: int = 4 ) -> list:
@@ -96,15 +92,15 @@ class Evolution_nn():
         problem = MazeSolver(
             maximize=False,
             visualization=False,
-            num_sensors=num_sensors,
-            input_size=input_size,
-            hidden_size=hidden_size,
-            output_size=output_size,
-            max_steps=max_steps,
-            close_controller=close_controller,
-            controller_type=controller,
-            fitness_func=fitness_func,
-            random = self.gen if random_map else 44
+            num_sensors=conf.num_sensors,
+            input_size=conf.input_size,
+            hidden_size=conf.hidden_size,
+            output_size=conf.output_size,
+            max_steps=conf.max_steps,
+            close_controller=conf.close_controller,
+            controller_type=conf.controller,
+            fitness_func=conf.fitness_func,
+            random = self.gen if conf.random_map else 44
         )
 
 
@@ -200,8 +196,8 @@ class Evolution_nn():
             # Run the EA
             # ───────────────────────────
             final_pop = generational_ea(
-                max_generations=generations,
-                pop_size=pop_size,
+                max_generations=conf.generations,
+                pop_size=conf.pop_size,
                 problem=problem,
                 representation=Representation(
                     # each call returns ONE genome of length genome_length
@@ -215,10 +211,10 @@ class Evolution_nn():
                     UniformCrossover(p_swap=0.5),
                     # Gaussian mutation
                     mutate_gaussian(sigma=0.4, frac_genes=0.2),
-                    ops.pool(size=pop_size),    # keep best pop_size
+                    ops.pool(size=conf.pop_size),    # keep best pop_size
                     self.grouped_evaluate(client=client, max_individuals_per_chunk=4),               # calls MazeSolver.evaluate()
                     self.gen_tick(),
-                    self.save_gen(filename=save_as, interval=10),
+                    self.save_gen(filename=conf.save_as, interval=10),
                     probe.FitnessStatsCSVProbe(stream=sys.stdout),
                     *viz_probes
                 ]
