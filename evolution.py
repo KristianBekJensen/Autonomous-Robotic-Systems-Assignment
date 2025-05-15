@@ -12,7 +12,7 @@ from leap_ec.algorithm import generational_ea
 from leap_ec.util import wrap_curry
 from leap_ec.ops import UniformCrossover, tournament_selection, clone
 from distributed import Client
-from Custom_Individual import Custom_Individual
+from custom_individual import Custom_Individual
 from graph import PopulationMetricsPlotProbe
 from maze_solver import MazeSolver
 from trajectory_recorder import save_pop, load_pop
@@ -93,7 +93,7 @@ class Evolution():
             close_controller=conf.close_controller,
             controller_type=conf.controller,
             fitness_func=conf.fitness_func,
-            random = self.gen if conf.random_map else 44
+            random_seed = self.gen if conf.random_map else 44
         )
 
         # define a gaussian mutation to use in the pipeline
