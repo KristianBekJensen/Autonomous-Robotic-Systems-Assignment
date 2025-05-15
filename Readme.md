@@ -4,7 +4,7 @@ To get all required libaries use: `pip install -r requirements.txt`
 
 ## Manuel Control
 
-Boot up by running main.py
+Boot up by running `main.py`
 
 ### Keybinds
 
@@ -23,7 +23,11 @@ Boot up by running main.py
 <kbd>6</kbd>: Visualize the mapping accuracy.
 
 ## Training
-### Config
-The config.py file allows 
 
-To see the best of individual of a generation run replay_best.py
+The `config.py` file allows to change parameters for Training.
+
+To start the training run `evolution.py`
+
+A file containg the current genration wil be saved in the poppulation folder every 10 genrations or after traning is complete.
+
+To visualize the best indvidual in a genration use `replay_best.py`. Input your filepath on line 6 to a genration and run `replay_best.py`.
