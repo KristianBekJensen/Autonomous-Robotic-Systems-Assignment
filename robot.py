@@ -23,11 +23,13 @@ class Robot:
                  max_speed = 6
                 ):
         
-        """Initialize the robot with given parameters."""
-        # State
+        # Initialize the robot with init parameters 
+        # Pose (x,y,theta)
         self.x = x
         self.y = y
-        self.theta = theta  # radians
+        self.theta = theta  # in radians
+        # intialize true and estimated pose 
+        # estimated pose = true pose (Local Localization)
         self.true_pose = (x, y, theta)
         self.estimated_pose = (x, y, theta)
         
@@ -35,7 +37,7 @@ class Robot:
         self.radius = radius
         self.axel_length = axel_length
         
-        # Motion attributes
+        # Initial velocities and speed boundaries 
         self.v_left = 0.0
         self.v_right = 0.0
         self.min_speed = min_speed
@@ -46,14 +48,18 @@ class Robot:
         self.max_sensor_range = max_sensor_range
         self.sensor_lines = []
         
-        # Trajectories
+        # Initialize Trajectories
         self.true_poses = [(x, y, theta)]
         self.estimated_poses = [(x, y, theta)]
-        self.sensor_values = np.full(self.num_sensors, max_sensor_range) 
         self.uncertainty_regions = []
+
+        # Intialize sensor values
+        self.sensor_values = np.full(self.num_sensors, max_sensor_range) 
         
+    # Method that calculates the robot's state change based on the motion model and applies collision handling
     def move(self, walls):
         
+        # given the wheel speed and the robot's position calculate the new hypothetical state change (no collision handling at this point)
         state_change = differential_drive_kinematics(
             [self.x, self.y, self.theta], 
             self.v_left, 
@@ -61,10 +67,12 @@ class Robot:
             self.axel_length
         )
 
+        # apply state change to the robot's position
         new_x = self.x + state_change[0]
         new_y = self.y + state_change[1]
         new_theta = (self.theta + state_change[2]) % (2 * math.pi)
 
+        # Check the new position for collisions with walls in the map and and if necessary adjust the position
         new_x, new_y, _ = self.check_collisions(new_x, new_y, walls)
         
         distance_moved = math.sqrt(abs(self.x - new_x)**2 + (self.y - new_y)**2)
@@ -77,6 +85,7 @@ class Robot:
         return distance_moved
 
     def check_If_Collided(self, walls):
+        """This method only returns a boolean whether any collision has occured at a time step and is used in the fitness function for Controller Evolution"""
         state_change = differential_drive_kinematics(
             [self.x, self.y, self.theta], 
             self.v_left, 
@@ -87,6 +96,7 @@ class Robot:
         new_x = self.x + state_change[0]
         new_y = self.y + state_change[1]
 
+        # uses the check_collisions method to check for collisions but does not adjust position in this case
         _, _, collided = self.check_collisions(new_x, new_y, walls)
         return collided 
 
@@ -100,32 +110,32 @@ class Robot:
         collided_walls = []
         for wall in walls:
 
-            # Getclosest point on rectangle to robot center
+            # Get closest point on rectangle to the robot's center
             closest_x = max(wall.x, min(test_x, wall.x + wall.width))
             closest_y = max(wall.y, min(test_y, wall.y + wall.height))
             
-            # Calculate distance between closest point and circle center
+            # Calculate the distance 
             distance_x = test_x - closest_x
             distance_y = test_y - closest_y
             distance = math.sqrt(distance_x**2 + distance_y**2)
             
-            # Check if colliding
+            # Check if colliding (distance from the center to the wall < robot' radius)
             if distance < self.radius:
                 collided_walls.append((wall, closest_x, closest_y, distance))
                 collided = True
 
-        # If no collided walls, move to the possible position
+        # If no collided walls, move to the hypothetical position
         if not collided_walls:
             return test_x, test_y, collided
         
-        # Handle collisions and adjust the new position (x,y adjusted)
+        # If collisions resolve them in resolve_collisons 
         adjusted_x, adjusted_y = self.resolve_collisions(test_x, test_y, collided_walls)
         return adjusted_x, adjusted_y, collided
     
     def resolve_collisions(self, test_x, test_y, collided_walls):
-        """Resolve collisions with potentially multiple walls"""
+        """Resolve collisions with collided walls pushing the robot away from the wall by the vector normal between wall and robot"""
 
-        # Initialize with  attempted position
+        # Initialize with hypothetical position
         adjusted_x, adjusted_y = test_x, test_y
         
         for wall, closest_x, closest_y, distance in collided_walls:
@@ -143,7 +153,7 @@ class Robot:
                     normal_x = dx / magnitude
                     normal_y = dy / magnitude
                 else:
-                    # Default push direction if no movement
+                    # push direction if no movement
                     normal_x, normal_y = 0, -1
             
             # Calculate how much we need to push the circle out
@@ -159,21 +169,25 @@ class Robot:
         detected_landmarks = []
         for landmark in landmarks: 
             i, m_x, m_y = landmark
+            # calculate distance between robot and landmark
             distance = math.sqrt((self.x - m_x) ** 2 + (self.y - m_y) ** 2)
 
             if distance < self.max_sensor_range:
+                # draw is boolean whether to visualize the detection 
                 if draw:
                     pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (m_x, m_y), 2)
+                # append landmark to detected landmarks if within range
                 detected_landmarks.append(landmark)
 
         return detected_landmarks
     
     def estimate_pose(self, kf, landmarks, detected_landmarks, screen, position_measurement_noise, theta_mesurement_noise, process_noise):
         
+        # get state change from kinematics model
         state = [self.x, self.y, self.theta]
         state_change = differential_drive_kinematics(state, self.v_left, self.v_right, self.axel_length)
 
-        # Predict step
+        # Calculate input for predict step in Kalman filter (linear and angular velocity)
         v = (self.v_left + self.v_right) / 2
         omega = state_change[2]
         u = np.array([v, omega])
@@ -182,6 +196,7 @@ class Robot:
         # Update step
         measurements = get_landmark_measurements(detected_landmarks, (self.x, self.y,self.theta))
         num_detected_landmarks = len(measurements)
+        # when two landmarks are detected use triangulation to correct pose 
         if num_detected_landmarks == 2:
             p1, p2, estimate_theta = two_point_triangulate(measurements, landmarks, (self.x, self.y, self.theta), 
                                                            position_measurement_noise, 
@@ -190,22 +205,22 @@ class Robot:
                 
                 z = [p1[0], p1[1], estimate_theta]
                 estimated_pose, sigma = kf.update(z)
-        # more than 2 detected landmarks
         elif num_detected_landmarks > 2:
             zs = []
             avg_theta = 0
-            # for every unique pair of landmark measurements
+            # apply triangulation to every unique pair of landmark measurements
             for i, j in itertools.combinations(range(num_detected_landmarks), 2):
                 meas_pair = [measurements[i], measurements[j]]
                 p1, p2, estimate_theta = two_point_triangulate(meas_pair, landmarks, (self.x, self.y, self.theta), position_measurement_noise, theta_mesurement_noise)
                 
                 # keep only the true intersection
+                # (0,0) is used as flag for invalid triangulation
                 if p1 != (0, 0):
                     avg_theta += estimate_theta
                     zs.append(p1)
 
             if zs:
-                # average all the valid p1’s
+                # average all the valid intersections 
                 avg_x = sum(pt[0] for pt in zs) / len(zs)
                 avg_y = sum(pt[1] for pt in zs) / len(zs)
                 z = [avg_x, avg_y, avg_theta/len(zs)]
@@ -226,7 +241,8 @@ class Robot:
                           np.sin(self.theta) * self.radius + self.y), 3)
         self.draw_robot_text(screen, self.x, self.y, self.radius/3, self.theta, 270, str(self.v_left.__round__(1))) # draw left wheel speed
         self.draw_robot_text(screen, self.x, self.y, self.radius/3, self.theta, 90, str(self.v_right.__round__(1))) # draw right wheel speed
-        
+
+    # draw a line for each point of the robot's trajectory   
     def drawTrajectories(self, screen):
         if len(self.true_poses) > 1:
             pts = [(px, py) for px, py, _ in self.true_poses]
@@ -290,6 +306,7 @@ class Robot:
                         min_dist = d
                         hit_point = (hx, hy)
 
+            # update the sensor value with the distance to the wall
             self.sensor_values[i] = min_dist + np.random.normal(0, sensor_noise)
 
             # choose draw end
