@@ -15,7 +15,7 @@ genome_length = (
 
 #Controllers
 close_controller = TargetController( #or None
-          genotype=min(load("populations/target_sensors6_Msteps240.0_rF_P16_c0.0_e0.0_s0.0_t-500_gen620.pkl")).phenome,
+          genotype=min(load("populations/targetcontoller_sensors6_Msteps120.0_rF_P16_c0.0_e0.0_s0.0_t0.0_gen10.pkl")).phenome,
           input_size= 6 + 2 + 1 + 1,
           hidden_size=hidden_size,
           output_size=output_size
@@ -25,7 +25,7 @@ controller = ExploreController
 
 # Aguments
 num_sensors = 6
-start_pop_filename = "multi_targets_sensors6_Msteps280.0_rF_P16_c0.0_e100.0_s0.5_t-500_gen20.pkl"
+start_pop_filename = None
 max_steps   = 2800
 random_map  = False
 pop_size    = 16
@@ -45,7 +45,7 @@ fitness = Fitness(collision_weight=collision_weight,
                 exploration_weight=exploration_weight,
                 speed_weight=speed_weight,
                 targets_collected_weight=targets_collected_weight)
-fitness_func = fitness.linar_fitness
+fitness_func = fitness.linear_fitness
 
 # Make Filename 
 save_as = "multi_targets_" + "sensors" + str(num_sensors) + "_Msteps"+ str(max_steps/10) + "_r" + ("T" if random_map else "F") + "_P" + str(pop_size) + "_c" + str(collision_weight) + "_e" + str(exploration_weight/10) + "_s" + str(speed_weight) + "_t" + str(targets_collected_weight)
