@@ -36,8 +36,8 @@ clock = pygame.time.Clock()
 x, y, theta = 100, 100, 0 # initial pose
 initial_pose = np.array([x, y, theta])
 v_left, v_right = 0, 0 # initial wheel speeds
-r = 20 # robot radius
-axel_length = 15 # axel length
+r = 15 # robot radius
+axel_length = 10 # axel length
 
 # parameters of the robot's distance sensors 
 max_sensor_range, num_sensors = 100, 48
@@ -50,7 +50,7 @@ robot = Robot(x, y, theta, r, axel_length, max_sensor_range, num_sensors) # rn g
 process_noise = 0.01
 position_measurement_noise = 0.01
 theta_measurement_noise = 0.005
-R = np.diag([process_noise, process_noise, theta_measurement_noise])  # Process noise
+R = np.diag([0.1, process_noise, theta_measurement_noise])  # Process noise
 Q = np.diag([position_measurement_noise, position_measurement_noise, theta_measurement_noise])  # Measurement noise
 initial_covariance = np.diag([0.1, 0.1, 0.1])  # low uncertainty for Local Localization
 SAMPLE_INTERVAL = 2000 # time intervall for adding and visualizing uncertainty ellipse (Sigma)
@@ -315,9 +315,27 @@ if trajectory_recorder.is_recording():
 
 pygame.quit()
 
-fig, axes  = plt.subplots(1, 2, figsize=(14,5))
+# fig, axes  = plt.subplots(1, 2, figsize=(14,5))
 
-axes[0].plot(error_est)
+# axes[0].plot(error_est)
+# axes[1].plot(sigma_over_time)
+# plt.show()
 
-axes[1].plot(sigma_over_time)
+# disable interactive mode so that show() will block
+plt.ioff()
+
+# create one figure & axis
+fig, ax = plt.subplots(figsize=(8,5))
+
+# plot both series on the same axes
+ax.plot(error_est, label='Estimation Error')
+ax.plot(sigma_over_time, label='Uncertainty (σₓₓ)')
+
+ax.set_xlabel('Time Step')
+ax.set_ylabel('Value')
+ax.set_title('Estimation Error vs. Uncertainty Over Time')
+ax.legend()
+ax.grid(True)
+fig.tight_layout()
+
 plt.show()
