@@ -234,7 +234,7 @@ class MazeSolver(ScalarProblem):
                 wall_thickness=4, 
                 n_obstacles=0, # no obstacles, just walls
                 random_seed=self.random, # training on different maps
-                p_landmark=1.0, # helping the robot with beacons at every corner
+                p_landmark=.3, # helping the robot with beacons at every corner
                 wall_h_prob=0.2, # 20% probability of presence of horizontal walls
                 wall_v_prob=0.2 # 20% probability of presence of vertical walls
             )
