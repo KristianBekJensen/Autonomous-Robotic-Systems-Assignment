@@ -47,6 +47,6 @@ fitness = Fitness(collision_weight=collision_weight,
                 exploration_weight=exploration_weight,
                 speed_weight=speed_weight,
                 targets_collected_weight=targets_collected_weight)
-fitness_func = fitness.linar_fitness
+fitness_func = fitness.linear_fitness
 
 save_as = "target_" + "sensors" + str(num_sensors) + "_Msteps"+ str(max_steps/10) + "_r" + ("T" if random_map else "F") + "_P" + str(pop_size) + "_c" + str(collision_weight) + "_e" + str(exploration_weight/10) + "_s" + str(speed_weight) + "_t" + str(targets_collected_weight)
