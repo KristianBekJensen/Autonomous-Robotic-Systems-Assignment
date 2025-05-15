@@ -61,15 +61,15 @@ class ExploreController:
         
         # take the min sensore distance in each chunk
         sensor_block_values = []
-        for chunk in chunks(robot.sensor_values, int(math.log(robot.num_sensors, 6))):
+        for chunk in chunks(robot.sensor_values, int(robot.num_sensors/ 6)):
             sensor_block_values.append(min(chunk))
         
         # normalize to [0,1]
-        inp[:robot.num_sensors] = np.array(sensor_block_values) / robot.max_sensor_range
+        inp[:6] = np.array(sensor_block_values) / robot.max_sensor_range
         
         # normalize wheel speeds
-        inp[robot.num_sensors + 0] = (robot.v_left - robot.min_speed) / (robot.max_speed-robot.min_speed)
-        inp[robot.num_sensors + 1] = (robot.v_right - robot.min_speed) / (robot.max_speed-robot.min_speed)
+        inp[6 + 0] = (robot.v_left - robot.min_speed) / (robot.max_speed-robot.min_speed)
+        inp[6 + 1] = (robot.v_right - robot.min_speed) / (robot.max_speed-robot.min_speed)
         
         return inp
 
@@ -99,17 +99,19 @@ class TargetController(ExploreController):
             """ helper function to chunk sensor values into blocks """
             for i in range(0, len(lst), n):
                 yield lst[i:i + n]
-        
+        sensor_block_values = []
+        for chunk in chunks(robot.sensor_values, int(robot.num_sensors/ 6)):
+            sensor_block_values.append(min(chunk))
         # normalize sensor values
-        inp[:robot.num_sensors] = np.array(robot.sensor_values) / robot.max_sensor_range
+        inp[:6] = np.array(sensor_block_values) / robot.max_sensor_range
 
         # normalize wheel speeds
-        inp[robot.num_sensors + 0] = (robot.v_left - robot.min_speed) / (robot.max_speed-robot.min_speed)
-        inp[robot.num_sensors + 1] = (robot.v_right - robot.min_speed) / (robot.max_speed-robot.min_speed)
+        inp[6 + 0] = (robot.v_left - robot.min_speed) / (robot.max_speed-robot.min_speed)
+        inp[6 + 1] = (robot.v_right - robot.min_speed) / (robot.max_speed-robot.min_speed)
         
         # normalize distance and angle to target
-        inp[robot.num_sensors + 2] = d_to_target_from_estimate / max_dist
-        inp[robot.num_sensors + 3] = phi / math.pi
+        inp[6 + 2] = d_to_target_from_estimate / max_dist
+        inp[6 + 3] = phi / math.pi
 
         return inp
 
@@ -142,7 +144,7 @@ class MazeSolver(ScalarProblem):
         self.hidden_size = hidden_size
         self.output_size = output_size
         self.max_steps = max_steps
-        self.random_seed = random
+        self.random = random
         self.close_controller = close_controller
         self.controller_type = controller_type
         self.fitness_func = fitness_func
@@ -176,7 +178,7 @@ class MazeSolver(ScalarProblem):
             # reset matrices and chose a random target on the map
             collisions = 0
             steps = 0
-            target_x = 150 #np.random.uniform(50, 750)
+            target_x = 500 #np.random.uniform(50, 750)
             target_y = 500 #np.random.uniform(50, 750) 
             avg_sigma = 0
 
@@ -234,7 +236,7 @@ class MazeSolver(ScalarProblem):
                 wall_thickness=4, 
                 n_obstacles=0, # no obstacles, just walls
                 random_seed=self.random, # training on different maps
-                p_landmark=.3, # helping the robot with beacons at every corner
+                p_landmark=1.0, # helping the robot with beacons at every corner
                 wall_h_prob=0.2, # 20% probability of presence of horizontal walls
                 wall_v_prob=0.2 # 20% probability of presence of vertical walls
             )
@@ -296,7 +298,7 @@ class MazeSolver(ScalarProblem):
                 distance_to_goal = distance_to_target((robot.x,robot.y),(target_x,target_y))
                 avg_distance_to_goal += distance_to_goal
                 if distance_to_goal < robot.radius*2:
-                    target_x, target_y = np.random.uniform(50, 600), np.random.uniform(50, 199)
+                    target_x, target_y = np.random.uniform(50, 750), np.random.uniform(50, 750)
                     targets_collected += 1
                 d_to_target_from_estimate = distance_to_target((target_x,target_y), (kf.mu[0], kf.mu[1]))
                 
