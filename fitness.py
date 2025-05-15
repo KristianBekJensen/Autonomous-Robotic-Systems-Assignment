@@ -3,6 +3,7 @@ import numpy as np
 from numpy import log2, number
 
 class Fitness():
+    
     def __init__(
         self, 
         collision_weight,
@@ -28,7 +29,9 @@ class Fitness():
         speed,
         targets_collected
         ):
-    
+
+        """ compute a weighted linear fitness function """
+
         return (
             self.collision_weight * num_collisions
             + self.time_weight * num_time_steps
@@ -43,6 +46,7 @@ def distance_to_target(target, position):
 
 
 def compute_map_exploration(grid_prob: np.ndarray, threshold: float = 1e-7):
+    """ returns the fraction of the map that is still not explored """
     deviation = np.abs(grid_prob - 0.5)
     explored = deviation > threshold
     return (1 - np.sum(explored) / grid_prob.size)
