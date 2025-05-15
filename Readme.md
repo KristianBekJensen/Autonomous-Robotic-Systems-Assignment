@@ -37,3 +37,6 @@ To start the training run `evolution.py`
 A file containg the current genration wil be saved in the poppulation folder every 10 genrations or after traning is complete.
 
 To visualize the best indvidual in a genration use `replay_best.py`. Input your filepath on line 6 to a genration and run `replay_best.py`.
+
+## Run same as Final Video
+To run the same experiment as in the final video simply run `replay_best.py`

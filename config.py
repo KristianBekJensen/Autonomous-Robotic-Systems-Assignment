@@ -16,7 +16,7 @@ genome_length = (
 )
 #Find best from population
 #best = min(load("navigate_to_goal.pkl"), key=lambda ind: ind.fitness).phenome
-best = load("finalphenome.pkl")
+best = load("finalphenome_target.pkl")
 #Controllers
 close_controller = TargetController( #or None
           genotype=best,

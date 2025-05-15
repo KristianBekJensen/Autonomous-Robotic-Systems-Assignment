@@ -28,7 +28,7 @@ problem = MazeSolver(
     close_controller=conf.close_controller,
     controller_type=conf.controller,
     fitness_func=conf.fitness_func,
-    random = mapSeed
+    random_seed = mapSeed
 )
 
 # run the best individual
