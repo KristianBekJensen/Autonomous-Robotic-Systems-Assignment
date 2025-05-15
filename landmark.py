@@ -38,8 +38,8 @@ def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_
     _, _, theta = robot
 
     if len(measurements) > 1:
-        a_r, a_phi, a_s =  measurements[0] # measurements of landmark a
-        b_r, b_phi, b_s =  measurements[1] # measurements of landmark b
+        a_r, a_phi, a_s = measurements[0] # measurements of landmark a
+        b_r, b_phi, b_s = measurements[1] # measurements of landmark b
 
         lookup = {idx: (x, y) for idx, x, y in landmarks}
         # get the landmark positions by their signature 
@@ -62,12 +62,12 @@ def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_
             xm = x1 + a*dx/d
             ym = y1 + a*dy/d
             rx = -dy * (h/d)
-            ry =  dx * (h/d)
+            ry = dx * (h/d)
             # return the two intersection points of the two circles 
             # the circles are defined by the landmarks positions as center and the measured range as radius
             return [(xm+rx, ym+ry), (xm-rx, ym-ry)]
 
-        p1, p2 =  intersect_two_circles(a_x, a_y, a_r, b_x, b_y, b_r)
+        p1, p2 = intersect_two_circles(a_x, a_y, a_r, b_x, b_y, b_r)
 
         p1_Aphi = phi(p1, (a_x, a_y), theta)
         p2_Aphi = phi(p2, (a_x, a_y), theta)
