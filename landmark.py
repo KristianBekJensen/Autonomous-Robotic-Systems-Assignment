@@ -36,10 +36,11 @@ def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_
     _, _, theta = robot
 
     if len(measurements) > 1:
-        a_r, a_phi, a_s =  measurements[0]
-        b_r, b_phi, b_s =  measurements[1]
+        a_r, a_phi, a_s =  measurements[0] # measurements of landmark a
+        b_r, b_phi, b_s =  measurements[1] # measurements of landmark b
 
         lookup = {idx: (x, y) for idx, x, y in landmarks}
+        # get the landmark positions by their signature 
         a_x, a_y = lookup[a_s]
         b_x, b_y = lookup[b_s]
 
@@ -60,6 +61,8 @@ def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_
             ym = y1 + a*dy/d
             rx = -dy * (h/d)
             ry =  dx * (h/d)
+            # return the two intersection points of the two circles 
+            # the circles are defined by the landmarks positions as center and the measured range as radius
             return [(xm+rx, ym+ry), (xm-rx, ym-ry)]
 
         p1, p2 =  intersect_two_circles(a_x, a_y, a_r, b_x, b_y, b_r)
@@ -69,12 +72,14 @@ def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_
         p1_Bphi = phi(p1, (b_x, b_y), theta)
         p2_Bphi = phi(p2, (b_x, b_y), theta)
 
+        # check which interesectionn point matches the measured bearings the best 
         if abs(p1_Aphi - a_phi) < abs(p2_Aphi - a_phi) and abs(p1_Bphi - b_phi) < abs(p2_Bphi - b_phi):
             chosen, other = p1, p2
         elif abs(p1_Aphi - a_phi) > abs(p2_Aphi - a_phi) and abs(p1_Bphi - b_phi) > abs(p2_Bphi - b_phi):
             chosen, other = p2, p1
         try:
 
+            # add noise to the chosen point 
             noisy_chosen = (
                 chosen[0] + np.random.normal(0, position_noise),
                 chosen[1] + np.random.normal(0, position_noise)
@@ -85,6 +90,8 @@ def two_point_triangulate(measurements, landmarks, robot, position_noise, theta_
             )
 
             noisy_theta = theta + np.random.normal(0, theta_noise)
+
+            # the other point is returned since it was used for debugging in earlier testing versions
             return noisy_chosen, noisy_other, noisy_theta
         except:
             return (0,0), (0,0), 0
