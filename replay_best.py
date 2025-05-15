@@ -3,7 +3,7 @@ import config as conf
 from maze_solver import MazeSolver
 
 # load the final saved population
-with open("populations\multi_sensors6_Msteps280.0_rF_P16_c0.0_e100.0_s0.5_t-500_gen10.pkl", "rb") as f:
+with open("map_explored1000_speed5_col20_16pop_time16_gen_20.pkl", "rb") as f: #populations/map_explored1000_speed5_col20_16pop_time16_gen_20.pkl
     final_pop = pickle.load(f)
 
 
@@ -21,7 +21,7 @@ problem = MazeSolver(
     input_size=conf.input_size,
     hidden_size=conf.hidden_size,
     output_size=conf.output_size,
-    max_steps=conf.max_steps,
+    max_steps=19999999999,
     close_controller=conf.close_controller,
     controller_type=conf.controller,
     fitness_func=conf.fitness_func,
