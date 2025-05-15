@@ -7,7 +7,9 @@ from mapping import *
 from robot import Robot
 from kalman_filter import KalmanFilter
 from maps import draw_map
- 
+
+## Main contributors: Kasra, Kristian
+
 # We trained two controlers. ExploreControler which is trained with the goal 
 # of exploring the map and TargetController which is trained to go directly
 # towards the target as soon as target is detected.

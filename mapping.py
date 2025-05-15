@@ -1,6 +1,8 @@
 import math
 import numpy as np
 
+## Main contributors: Kristian, Noah
+
 def line_through_grid(start, end, grid_size, number_x_grids, number_y_grids):
     
     #Determine all grid cells that a line from start to end passes through.

@@ -2,6 +2,8 @@ import pygame
 import random
 import numpy as np
 
+## Main contributors: Kasra, Noah
+
 def draw_map(
     screen, 
     num_blocks_w, 

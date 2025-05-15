@@ -2,6 +2,8 @@ import math
 import numpy as np
 from numpy import log2, number
 
+## Main contributors: Noah, Kristian
+
 class Fitness():
     
     def __init__(

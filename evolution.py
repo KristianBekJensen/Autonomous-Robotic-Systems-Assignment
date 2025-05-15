@@ -17,6 +17,8 @@ from graph import PopulationMetricsPlotProbe
 from maze_solver import MazeSolver
 from trajectory_recorder import save_pop, load_pop
 
+## Main contributors: Kasra, Noah, Kristian
+
 class Evolution():
     """ a class for setting up and running neuroevolution """
 

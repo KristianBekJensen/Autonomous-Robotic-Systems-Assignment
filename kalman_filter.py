@@ -1,6 +1,8 @@
 import numpy as np
 from math import cos, sin, atan2, sqrt
 
+## Main contributors: Noah, Kasra
+
 class KalmanFilter:
     def __init__(self, init_state, init_covariance, process_noise, measurement_noise):
         # State: [x, y, theta]

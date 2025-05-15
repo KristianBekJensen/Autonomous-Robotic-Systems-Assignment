@@ -3,11 +3,12 @@ import numpy as np
 import pygame
 import math
 import itertools
-
 from pyparsing import col
 from kinematics import differential_drive_kinematics
 from landmark import two_point_triangulate, get_landmark_measurements
 from utils import draw_covariance_ellipse
+
+## Main contributors: Noah, Kristian, Kasra
 
 class Robot:
     

@@ -1,6 +1,8 @@
 import numpy as np
 from math import cos, sin, atan2, sqrt
 
+## Main contributors: Kristian, Kasra
+
 def get_landmark_measurements(landmarks, robot_pose):
     x, y, theta = robot_pose
     measurements = []

@@ -10,6 +10,8 @@ from maps import *
 from robot import Robot
 from trajectory_recorder import TrajectoryRecorder
 
+## Main contributors: Kristian, Noah, Kasra
+
 # pygame setup
 pygame.init()
 
