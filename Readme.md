@@ -10,6 +10,12 @@ Boot up by running `main.py`
 
 <kbd>w</kbd> <kbd>a</kbd> <kbd>s</kbd><kbd>d</kbd> : Movement Controls
 
+<kbd>q</kbd> or <kbd>e</kbd>: Rotate in place
+
+<kbd>r</kbd> : Starts and stops recording of a trajectory
+
+<kbd>p</kbd> : Plays the previous recorded trajectory
+
 <kbd>1</kbd>: Visualise the parts of the map grid that the robot is currently observing with its sensors.
 
 <kbd>2</kbd>: Draw lines to deteced landmarks.
