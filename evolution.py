@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import graph
 import itertools
-import config_nn as conf
+import config as conf
 from matplotlib import pyplot as plt
 from leap_ec.distrib import synchronous
 from leap_ec import Representation

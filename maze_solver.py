@@ -163,7 +163,7 @@ class MazeSolver(ScalarProblem):
         )
 
         fitness_score = 0.0
-        number_runs = 2
+        number_runs = 1
         
         for i in range(number_runs):
             """ for each run we create an environment and a robot (similar to main.py) 
@@ -176,8 +176,8 @@ class MazeSolver(ScalarProblem):
             # reset matrices and chose a random target on the map
             collisions = 0
             steps = 0
-            target_x = np.random.uniform(50, 750)
-            target_y = np.random.uniform(50, 750) 
+            target_x = 500 #np.random.uniform(50, 750)
+            target_y = 500 #np.random.uniform(50, 750) 
             avg_sigma = 0
 
             SCREEN_W = SCREEN_H = 800
@@ -242,7 +242,7 @@ class MazeSolver(ScalarProblem):
             pygame.display.flip()
 
             targets_collected = 0
-            distance_to_goal = 0.0
+            avg_distance_to_goal = 0.0
 
         
             # simulation loop
@@ -293,6 +293,10 @@ class MazeSolver(ScalarProblem):
                 # define screen diagonal as max dist to use for normalization
                 max_dist = math.hypot(SCREEN_W, SCREEN_H)
 
+                distance_to_goal = distance_to_target((robot.x,robot.y),(target_x,target_y))
+                avg_distance_to_goal += distance_to_goal
+                if distance_to_goal < robot.radius*2:
+                    target_x, target_y = np.random.uniform(50, 750), np.random.uniform(50, 750) 
                 d_to_target_from_estimate = distance_to_target((target_x,target_y), (kf.mu[0], kf.mu[1]))
                 
                 # use the close_controller (=target controller) if you see the target
@@ -311,9 +315,6 @@ class MazeSolver(ScalarProblem):
                 # collision, motion, drawing
                 if robot.check_If_Collided(walls+obstacles):
                     collisions += 1
-                distance_to_goal += distance_to_target((robot.x,robot.y),(target_x,target_y))
-                if distance_to_goal < robot.radius:
-                    break
                 
                 # penalize for not trying to move
                 speed = robot.move(walls+obstacles)
@@ -336,13 +337,13 @@ class MazeSolver(ScalarProblem):
 
             # after the run calculate how much of the map was explored and distance to goal
             map_unexplored = compute_map_exploration(grid_prob, threshold=1e-3)
-            distance_to_goal = distance_to_goal / steps
+            avg_distance_to_goal = avg_distance_to_goal / steps
 
             # final score
             fitness_score += self.fitness_func(
                 num_collisions=collisions,
                 num_time_steps=steps,
-                dist_to_target=distance_to_goal,
+                dist_to_target=avg_distance_to_goal,
                 map_unexplored=map_unexplored,
                 speed=low_speed_penalty,
                 targets_collected=targets_collected

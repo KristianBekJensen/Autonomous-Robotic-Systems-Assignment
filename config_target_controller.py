@@ -1,27 +1,11 @@
 from fitness import Fitness
 from maze_solver import ExploreController, TargetController
-from trajectory_recorder import load, load_pop
+from trajectory_recorder import load
 
-# Number of sensors 
-num_sensors = 6
-
-# MLP dimensions (must match maze_solver.py)
-# input = num_sensor + wheel left right
-input_size   = 6 + 2 #+ 1 + 1
+# Calculate total genome length:
+input_size   = 6 + 2 + 1 + 1
 hidden_size  = 10
 output_size  = 2
-
-#Controllers
-close_controller = TargetController( #or None
-          genotype=min(load("navigate_to_goal.pkl")).phenome,
-          input_size= 6 + 2 + 1 + 1,
-          hidden_size=hidden_size,
-          output_size=output_size
-      )
-
-controller = ExploreController
-
-# calculate total genome length:
 genome_length = (
       hidden_size * input_size    # W1
     + hidden_size                 # b1
@@ -29,21 +13,26 @@ genome_length = (
     + output_size                 # b2
 )
 
+#Controllers
+close_controller = None
+
+controller = TargetController
+
+# Aguments
+num_sensors = 6
 start_pop_filename = None
-
-max_steps = 2400
-random_map = False
-
+max_steps   = 1200
+random_map  = False
 pop_size    = 16
 generations = 100000
 
-# fitness
+# Define Fitness weights
 collision_weight=0.0
 time_weight=0.0
-dist_weight=0.0
-exploration_weight=1000.0
-speed_weight=0.5 
-targets_collected_weight=-500
+dist_weight=2.0
+exploration_weight=0.0
+speed_weight=0.0
+targets_collected_weight=0.0
 
 fitness = Fitness(collision_weight=collision_weight,
                 time_weight=time_weight,
@@ -51,6 +40,7 @@ fitness = Fitness(collision_weight=collision_weight,
                 exploration_weight=exploration_weight,
                 speed_weight=speed_weight,
                 targets_collected_weight=targets_collected_weight)
-fitness_func = fitness.linear_fitness
+fitness_func = fitness.linar_fitness
 
+# Make Filename 
 save_as = "target_" + "sensors" + str(num_sensors) + "_Msteps"+ str(max_steps/10) + "_r" + ("T" if random_map else "F") + "_P" + str(pop_size) + "_c" + str(collision_weight) + "_e" + str(exploration_weight/10) + "_s" + str(speed_weight) + "_t" + str(targets_collected_weight)
