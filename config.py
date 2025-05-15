@@ -12,10 +12,12 @@ genome_length = (
     + output_size * hidden_size   # W2
     + output_size                 # b2
 )
-best = min(load("navigate_to_goal.pkl"), key=lambda ind: ind.fitness)
+#Find best from population
+#best = min(load("navigate_to_goal.pkl"), key=lambda ind: ind.fitness).phenome
+best = load("finalphenome.pkl")
 #Controllers
 close_controller = TargetController( #or None
-          genotype=best.phenome,
+          genotype=best,
           input_size= 6 + 2 + 1 + 1,
           hidden_size=hidden_size,
           output_size=output_size
